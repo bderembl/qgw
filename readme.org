@@ -1,12 +1,15 @@
 QG code that rely on FFTW for the elliptic solver.
 
    Compile with 
-     gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -lnetcdf
+#+BEGIN_SRC sh
+gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -lnetcdf
+#+END_SRC
+
 
 * QG equations
 
 
-$$\frac{\partial q}{\partial t} = -J(\psi,q) + \beta v + \nu \Delta q$$
+$$\frac{\partial q}{\partial t} = -J(\psi,q) - \beta v + \nu \Delta q$$
 
 * Discretization
 
@@ -21,8 +24,8 @@ This may simplify or complexify the move to MPI
 * Boundary conditions
 
 
-bc_fac is a parameter that controls the type of boundary conditions:
-bc_fac = 0      -> free slip BC (default)
-bc_fac = [0..1] -> partial slip
-bc_fac = 1      -> no slip BC
-bc_fac = -1     -> periodic BC (experimental)
+- bc_fac is a parameter that controls the type of boundary conditions:
+- bc_fac = 0      -> free slip BC (default)
+- bc_fac = [0..1] -> partial slip
+- bc_fac = 1      -> no slip BC
+- bc_fac = -1     -> periodic BC (experimental)
