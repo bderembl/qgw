@@ -1,0 +1,28 @@
+QG code that rely on FFTW for the elliptic solver.
+
+   Compile with 
+     gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -lnetcdf
+
+* QG equations
+
+
+$$\frac{\partial q}{\partial t} = -J(\psi,q) + \beta v + \nu \Delta q$$
+
+* Discretization
+
+Variables are discretized at cell corner.
+
+to access the value of a field at index i,j, one uses 
+
+p[idx(i,j)]
+
+This may simplify or complexify the move to MPI
+
+* Boundary conditions
+
+
+bc_fac is a parameter that controls the type of boundary conditions:
+bc_fac = 0      -> free slip BC (default)
+bc_fac = [0..1] -> partial slip
+bc_fac = 1      -> no slip BC
+bc_fac = -1     -> periodic BC (experimental)
