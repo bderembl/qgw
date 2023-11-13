@@ -38,15 +38,17 @@ double Delta;
 double t = 0;
 double dt = 0.;
 double tend = 1;
+double dt_out = 0.1;
+double t_out = 0;
 int it = 0;
-int it_out = 500;
 
 // physical constants and functions
 double beta = 0.;
 double nu = 0.;
 double tau0 = 0.;
 double bc_fac = 0.;
-#define forcing_q(t) ( -tau0/Ly*pi*sin(pi*Y[j]/Ly))
+
+#define forcing_q(t) (-tau0/Ly*pi*sin(pi*Y[j]/Ly))
 
 #include "domain.h"
 #include "elliptic.h"
@@ -72,7 +74,7 @@ int main(int argc,char* argv[])
   params = list_append(params, &bc_fac, "bc_fac", "double");
   params = list_append(params, &dt, "dt", "double");
   params = list_append(params, &tend, "tend", "double");
-  params = list_append(params, &it_out, "it_out", "int");
+  params = list_append(params, &dt_out, "dt_out", "double");
 
   // Search for the configuration file with a given path or read params.in 
   if (argc == 2)
@@ -104,8 +106,9 @@ int main(int argc,char* argv[])
      Main Loop
   */
   while(t<tend){
-    if (it%it_out == 0){
-      printf("it = %d \n",it);
+    if ((t_out - t)/dt < 1){
+      printf("t_out = %e \n",t);
+			t_out += dt_out;
       write_nc();
     }
     timestep(q);

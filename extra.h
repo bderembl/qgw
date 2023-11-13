@@ -4,7 +4,7 @@
  */
 
 char dir_out[80]; // name of output dir
-char *file_param = "params.in"; // default param filename
+char *file_param = "/home/lennard/qgw/params.in"; // default param filename
 
 
 /** 
@@ -163,7 +163,7 @@ void create_outdir()
 {
   //  if (pid() == 0) {
   for (int i=1; i<10000; i++) {
-    sprintf(dir_out, "outdir_%04d/", i);
+    sprintf(dir_out, "/home/lennard/qgw/outdir_%04d/", i);
     if (mkdir(dir_out, 0777) == 0) {
       fprintf(stdout,"Writing output in %s\n",dir_out);
       break;
