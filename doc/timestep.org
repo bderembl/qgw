@@ -105,17 +105,15 @@ $$ q_n = q_0 + c_0 f_0 + c_1 f_1 + c_2 f_2\, ,$$
 and the coefficients
 
 
-#+begin_src python :session :results output :exports results :wrap export latex
-
+#+begin_src python :session :exports results :results output raw
 print('$$c0 = ', latex(c0.simplify()), '$$\n')
 print('$$c1 = ', latex(c1.simplify()), '$$\n')
 print('$$c2 = ', latex(c2.simplify()), '$$\n')
-
 #+end_src
 
 #+RESULTS:
-#+BEGIN_export latex
-c0 =  \frac{dt \left(2 dt^{2} + 3 dt \left(2 dt_{0} + dt_{1}\right) + 6 dt_{0} \left(dt_{0} + dt_{1}\right)\right)}{6 dt_{0} \left(dt_{0} + dt_{1}\right)}
-c1 =  \frac{dt^{2} \left(- \frac{dt}{3} - \frac{dt_{0}}{2} - \frac{dt_{1}}{2}\right)}{dt_{0} dt_{1}}
-c2 =  \frac{dt^{2} \left(\frac{dt}{3} + \frac{dt_{0}}{2}\right)}{dt_{1} \left(dt_{0} + dt_{1}\right)}
-#+END_export
+$$c0 =  \frac{dt \left(2 dt^{2} + 3 dt \left(2 dt_{0} + dt_{1}\right) + 6 dt_{0} \left(dt_{0} + dt_{1}\right)\right)}{6 dt_{0} \left(dt_{0} + dt_{1}\right)} $$
+
+$$c1 =  \frac{dt^{2} \left(- \frac{dt}{3} - \frac{dt_{0}}{2} - \frac{dt_{1}}{2}\right)}{dt_{0} dt_{1}} $$
+
+$$c2 =  \frac{dt^{2} \left(\frac{dt}{3} + \frac{dt_{0}}{2}\right)}{dt_{1} \left(dt_{0} + dt_{1}\right)} $$
