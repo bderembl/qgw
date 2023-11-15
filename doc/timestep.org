@@ -1,1 +1,121 @@
-* Adams-Bashforth with variable timestep 
+* Time stepping
+
+** Adams-Bashforth with variable time step 
+
+The Adams-Bashforth method is an explicit numerical method used for the
+numerical integration of ordinary differential equations (ODEs), particularly
+initial value problems. This method is based on polynomial interpolation and
+involve extrapolating the solution at each time step using past values of the
+solution. Let's first recall the coefficients of the standard Adams-Bashforth
+(uniform time step) at order 2 and 3 and then expand the formalism to a variable
+time step. We consider the following ODE
+
+$$ \frac{dq}{dt} = f \, .$$
+
+We integrate this equation between $t_0$ and $t_n = t_0 + dt$:
+
+$$q_n - q_0 = \int_{t_0}^{t_0+dt} f dt\, .$$
+
+In the Adams-Bashforth (AB) method, we employ polynomial interpolation to
+approximate the function $f$. The equation of the polynomial is determined
+using past points $(t_0, f_0)$, $(t_1, f_1)$, and $(t_2, f_2)$, where
+$t_0 > t_1 > t_2$. The Lagrange formula is typically employed to derive the
+equation of the polynomial. With two interpolation points, we obtain the
+Adams-Bashforth method of order 2 (AB2), and with three interpolating points, we
+acquire the Adams-Bashforth method of order 3 (AB3).
+
+*** Adams-Bashforth of Order 2 (AB2)
+
+When utilizing only two interpolating points $(t_0, f_0)$ and $(t_1, f_1)$
+with a constant time step $dt$, the Adams-Bashforth method of order 2 (AB2)
+estimates the solution at time $t_n$ using the following formula
+
+$$ q_n = q_0 + \frac{dt}{2}\left(3f_0 - f_1\right) \, ,$$
+where $dt$ is the time step.
+
+*** Adams-Bashforth of Order 3 (AB3)
+
+With 3 points, the AB3 method estimates the solution at time $t_n$ using the
+formula
+
+$$ q_n = q_0 + \frac{dt}{12}\left(23f_0 - 16f_1 + 5f_2\right) \, .$$
+
+These formulas represent explicit updates for the solution at each time step
+based on past values evenly separated in time.
+
+*** Variable time step
+
+If the evaluation of the function is done at $t_0$, $t_1$, and $t_2$ with $t_0 -
+t_1 \ne t_1 - t_2$, one can still use the same procedure, but the coefficients
+are not as simple. Similar to the traditional method, a polynomial is
+constructed using the Lagrange formula. In the provided Python code, a symbolic
+interpolating polynomial of degree $n$ is created and integrated over the
+interval $[t_0, t_n] $. The resulting integrated polynomial is then simplified
+to obtain the coefficients corresponding to different evaluation points $f_0$,
+$f_1$, and $f_2$.
+
+#+begin_src python :results output :exports both
+
+from sympy import symbols, polys, integrate, latex
+
+# Order of the integration scheme
+n = 3
+
+# Define symbols for the variables and parameters in the polynomial
+t, t0, t1, t2 = symbols('t, t0, t1, t2')
+f0, f1, f2 = symbols('f0, f1, f2')
+dt, dt0, dt1 = symbols('dt, dt0, dt1')
+
+# Create the interpolating polynomial of degree n
+p = polys.specialpolys.interpolating_poly(n, t, X='t0,t1,t2', Y='f0,f1,f2')
+
+# Integrate the polynomial over [t0, t0 + dt] and perform substitutions
+# to simplify the expression by replacing t1 and t2 with t0-dt0 and t0-dt0-dt1 respectively,
+# and setting t0 to 0
+p_int = integrate(p, (t, t0, t0 + dt))
+p_int = p_int.subs(t1, t0 - dt0)
+p_int = p_int.subs(t2, t0 - dt0 - dt1)
+p_int = p_int.subs(t0, 0)
+
+# Extract coefficients for f0, f1, and f2 from the simplified integrated polynomial
+# and print the results
+c0 = p_int.expand().collect(f0).coeff(f0)
+print('c0 = ', c0.simplify())
+print('c0 = ', latex(c0.simplify()))
+print('\n')
+
+c1 = p_int.expand().collect(f1).coeff(f1)
+print('c1 = ', c1.simplify())
+print('c1 = ', latex(c1.simplify()))
+print('\n')
+
+c2 = p_int.expand().collect(f2).coeff(f2)
+print('c2 = ', c2.simplify())
+print('c2 = ', latex(c2.simplify()))
+#+end_src
+
+#+RESULTS:
+#+begin_example
+c0 =  dt*(2*dt**2 + 3*dt*(2*dt0 + dt1) + 6*dt0*(dt0 + dt1))/(6*dt0*(dt0 + dt1))
+c0 =  \frac{dt \left(2 dt^{2} + 3 dt \left(2 dt_{0} + dt_{1}\right) + 6 dt_{0} \left(dt_{0} + dt_{1}\right)\right)}{6 dt_{0} \left(dt_{0} + dt_{1}\right)}
+
+
+c1 =  dt**2*(-dt/3 - dt0/2 - dt1/2)/(dt0*dt1)
+c1 =  \frac{dt^{2} \left(- \frac{dt}{3} - \frac{dt_{0}}{2} - \frac{dt_{1}}{2}\right)}{dt_{0} dt_{1}}
+
+
+c2 =  dt**2*(dt/3 + dt0/2)/(dt1*(dt0 + dt1))
+c2 =  \frac{dt^{2} \left(\frac{dt}{3} + \frac{dt_{0}}{2}\right)}{dt_{1} \left(dt_{0} + dt_{1}\right)}
+#+end_example
+We get
+
+$$ q_n = q_0 + c_0 f_0 + c_1 f_1 + c_2 f_2\, ,$$
+and the coefficients
+
+$$c0 =  \frac{dt \left(2 dt^{2} + 3 dt \left(2 dt_{0} + dt_{1}\right) + 6 dt_{0} \left(dt_{0} + dt_{1}\right)\right)}{6 dt_{0} \left(dt_{0} + dt_{1}\right)}$$
+
+
+$$c1 =  \frac{dt^{2} \left(- \frac{dt}{3} - \frac{dt_{0}}{2} - \frac{dt_{1}}{2}\right)}{dt_{0} dt_{1}}$$
+
+
+$$c2 =  \frac{dt^{2} \left(\frac{dt}{3} + \frac{dt_{0}}{2}\right)}{dt_{1} \left(dt_{0} + dt_{1}\right)}$$

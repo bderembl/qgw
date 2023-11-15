@@ -3,3 +3,6 @@ outdir*
 compile_flags.txt
 qgw.workspace
 LICENSE
+doc/*.tex
+doc/auto
+doc/*.pdf
