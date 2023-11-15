@@ -31,6 +31,7 @@ with a constant time step $dt$, the Adams-Bashforth method of order 2 (AB2)
 estimates the solution at time $t_n$ using the following formula
 
 $$ q_n = q_0 + \frac{dt}{2}\left(3f_0 - f_1\right) \, ,$$
+
 where $dt$ is the time step.
 
 *** Adams-Bashforth of Order 3 (AB3)
@@ -50,11 +51,12 @@ t_1 \ne t_1 - t_2$, one can still use the same procedure, but the coefficients
 are not as simple. Similar to the traditional method, a polynomial is
 constructed using the Lagrange formula. In the provided Python code, a symbolic
 interpolating polynomial of degree $n$ is created and integrated over the
-interval $[t_0, t_n] $. The resulting integrated polynomial is then simplified
+interval $[t_0, t_n]$. The resulting integrated polynomial is then simplified
 to obtain the coefficients corresponding to different evaluation points $f_0$,
 $f_1$, and $f_2$.
 
-#+begin_src python :results output :exports both
+#+NAME main
+#+begin_src python :session :results output :exports both
 
 from sympy import symbols, polys, integrate, latex
 
@@ -81,41 +83,39 @@ p_int = p_int.subs(t0, 0)
 # and print the results
 c0 = p_int.expand().collect(f0).coeff(f0)
 print('c0 = ', c0.simplify())
-print('c0 = ', latex(c0.simplify()))
-print('\n')
 
 c1 = p_int.expand().collect(f1).coeff(f1)
 print('c1 = ', c1.simplify())
-print('c1 = ', latex(c1.simplify()))
-print('\n')
 
 c2 = p_int.expand().collect(f2).coeff(f2)
 print('c2 = ', c2.simplify())
-print('c2 = ', latex(c2.simplify()))
 #+end_src
 
 #+RESULTS:
-#+begin_example
-c0 =  dt*(2*dt**2 + 3*dt*(2*dt0 + dt1) + 6*dt0*(dt0 + dt1))/(6*dt0*(dt0 + dt1))
-c0 =  \frac{dt \left(2 dt^{2} + 3 dt \left(2 dt_{0} + dt_{1}\right) + 6 dt_{0} \left(dt_{0} + dt_{1}\right)\right)}{6 dt_{0} \left(dt_{0} + dt_{1}\right)}
+: c0 =  dt*(2*dt**2 + 3*dt*(2*dt0 + dt1) + 6*dt0*(dt0 + dt1))/(6*dt0*(dt0 + dt1))
+: c1 =  dt**2*(-dt/3 - dt0/2 - dt1/2)/(dt0*dt1)
+: c2 =  dt**2*(dt/3 + dt0/2)/(dt1*(dt0 + dt1))
 
 
-c1 =  dt**2*(-dt/3 - dt0/2 - dt1/2)/(dt0*dt1)
-c1 =  \frac{dt^{2} \left(- \frac{dt}{3} - \frac{dt_{0}}{2} - \frac{dt_{1}}{2}\right)}{dt_{0} dt_{1}}
 
-
-c2 =  dt**2*(dt/3 + dt0/2)/(dt1*(dt0 + dt1))
-c2 =  \frac{dt^{2} \left(\frac{dt}{3} + \frac{dt_{0}}{2}\right)}{dt_{1} \left(dt_{0} + dt_{1}\right)}
-#+end_example
 We get
 
 $$ q_n = q_0 + c_0 f_0 + c_1 f_1 + c_2 f_2\, ,$$
+
 and the coefficients
 
-$$c0 =  \frac{dt \left(2 dt^{2} + 3 dt \left(2 dt_{0} + dt_{1}\right) + 6 dt_{0} \left(dt_{0} + dt_{1}\right)\right)}{6 dt_{0} \left(dt_{0} + dt_{1}\right)}$$
 
+#+begin_src python :session :results output :exports results :wrap export latex
 
-$$c1 =  \frac{dt^{2} \left(- \frac{dt}{3} - \frac{dt_{0}}{2} - \frac{dt_{1}}{2}\right)}{dt_{0} dt_{1}}$$
+print('$$c0 = ', latex(c0.simplify()), '$$\n')
+print('$$c1 = ', latex(c1.simplify()), '$$\n')
+print('$$c2 = ', latex(c2.simplify()), '$$\n')
 
+#+end_src
 
-$$c2 =  \frac{dt^{2} \left(\frac{dt}{3} + \frac{dt_{0}}{2}\right)}{dt_{1} \left(dt_{0} + dt_{1}\right)}$$
+#+RESULTS:
+#+BEGIN_export latex
+c0 =  \frac{dt \left(2 dt^{2} + 3 dt \left(2 dt_{0} + dt_{1}\right) + 6 dt_{0} \left(dt_{0} + dt_{1}\right)\right)}{6 dt_{0} \left(dt_{0} + dt_{1}\right)}
+c1 =  \frac{dt^{2} \left(- \frac{dt}{3} - \frac{dt_{0}}{2} - \frac{dt_{1}}{2}\right)}{dt_{0} dt_{1}}
+c2 =  \frac{dt^{2} \left(\frac{dt}{3} + \frac{dt_{0}}{2}\right)}{dt_{1} \left(dt_{0} + dt_{1}\right)}
+#+END_export
