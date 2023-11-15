@@ -1,3 +1,5 @@
+#+OPTIONS: ^:nil
+
 * Time stepping
 
 ** Adams-Bashforth with variable time step 
