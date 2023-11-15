@@ -55,7 +55,6 @@ interval $[t_0, t_n]$. The resulting integrated polynomial is then simplified
 to obtain the coefficients corresponding to different evaluation points $f_0$,
 $f_1$, and $f_2$.
 
-#+NAME main
 #+begin_src python :session :results output :exports both
 
 from sympy import symbols, polys, integrate, latex
@@ -79,8 +78,7 @@ p_int = p_int.subs(t1, t0 - dt0)
 p_int = p_int.subs(t2, t0 - dt0 - dt1)
 p_int = p_int.subs(t0, 0)
 
-# Extract coefficients for f0, f1, and f2 from the simplified integrated polynomial
-# and print the results
+# Extract coefficients for f0, f1, and f2 from the integrated polynomial
 c0 = p_int.expand().collect(f0).coeff(f0)
 print('c0 = ', c0.simplify())
 
