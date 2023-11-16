@@ -1,12 +1,12 @@
 #!sh
 # input parameter files
 
-Nx = 64
-Ny = 64
+Nx = 256
+Ny = 256
 Lx = 21.5443
 
-tau0 = 1
-nu = 1e-1
+tau0 = 4
+nu = 5e-2
 beta = 1.0
 bc_fac = 1.0
 
