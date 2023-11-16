@@ -32,6 +32,7 @@ List *params;
 int Nx, Ny;
 int Nxm1, Nym1;
 int Nxp1, Nyp1;
+int N_c;
 int nl = 1;
 double Lx, Ly;
 double Delta;
@@ -48,14 +49,22 @@ double nu = 0.;
 double tau0 = 0.;
 double bc_fac = 0.;
 
-#define forcing_q(t) (-tau0/Ly*pi*sin(pi*Y[j]/Ly))
+// grid indices
+#define idx(i,j) (j)*Nxp1 + (i)
+
+// define forcing
+#ifdef _STOCHASTIC
+	// parameters
+	double eps = 1.;
+	double k_forc = 0.1;
+#endif
 
 #include "domain.h"
 #include "elliptic.h"
+#include "forcing.h"
 #include "dynamics.h"
 #include "timestep.h"
 #include "netcdf_io.h"
-
 
 int main(int argc,char* argv[])
 {
@@ -75,7 +84,9 @@ int main(int argc,char* argv[])
   params = list_append(params, &dt, "dt", "double");
   params = list_append(params, &tend, "tend", "double");
   params = list_append(params, &dt_out, "dt_out", "double");
-
+  params = list_append(params, &eps, "eps", "double");
+  params = list_append(params, &k_forc, "k_forc", "double");
+	
   // Search for the configuration file with a given path or read params.in 
   if (argc == 2)
     strcpy(file_param,argv[1]); // default: params.in
@@ -87,12 +98,21 @@ int main(int argc,char* argv[])
   /**
      Initialization
    */
-
+	
+	
   init_domain();
   init_vars();
   init_fft();
   init_timestep();
 
+	#ifdef _STOCHASTIC
+		init_stoch_forc();
+		printf("Stochastic forcing. \n");
+	#else
+		init_det_forc();
+		printf("Large-scale forcing. \n");
+	#endif
+	
   invert_pv(q,psi);
 
   list_nc = list_append(list_nc, psi,"psi", "double");
@@ -119,10 +139,16 @@ int main(int argc,char* argv[])
   /**
      Cleanup
   */
-
+	
+	#ifdef _STOCHASTIC
+		clean_stoch_forcing();
+	#else
+		clean_det_forcing();
+	#endif
+	
   clean_fft();
   clean_timestep();
-
+	
   free(psi);
   free(q);
   free(X);
