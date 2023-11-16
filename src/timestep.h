@@ -26,11 +26,11 @@ void check_timestep(){
   */
   
   if (beta != 0 && nu != 0) {
-    DT_max = min(1/(2.*beta*Lx),0.5*sq(Lx/Nx)/nu/4.);
+    DT_max = min(1/(2.*beta*Lx),sq(Lx/Nx)/nu/2.);
   } else if (beta == 0 && nu != 0) {
     DT_max = 1/(2.*beta*Lx);
   } else if (beta != 0 && nu == 0) {
-    DT_max = 0.5*sq(Lx/Nx)/nu/4.;
+    DT_max = sq(Lx/Nx)/nu/2.;
   }
   
   if (DT_max != 0 && dt > DT_max) {
@@ -75,9 +75,12 @@ double adjust_timestep(double *psi) {
   }
 
   //TODO  MPI reduce here
-  if ((dt_max > dt) && (dt_max < DT_max))
+  if ((dt_max > dt) && (dt_max < DT_max)){
     dt = (dt + 0.1*dt_max)/1.1;
+    if (dt > DT_max) dt = DT_max;
+  }
 
+  if (dt_max < dt) dt = dt_max;
 
   // Adjust dt to reach t_out (from Basilisk)
   if (t_out > t + TEPS) {
