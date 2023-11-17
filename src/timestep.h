@@ -75,6 +75,7 @@ double adjust_timestep(double *psi) {
   }
 
   //TODO  MPI reduce here
+
   if ((dt_max > dt) && (dt < DT_max)){
     dt = (dt + 0.1*dt_max)/1.1;
     if (dt > DT_max) dt = DT_max;
@@ -95,10 +96,6 @@ double adjust_timestep(double *psi) {
         dt = dt1;
     }
   }
-  printf("dt = %e \n", dt);
-  printf("dt_max = %e \n", DT_max);
-  printf("dt_max_u = %e \n", dt_max);
-  printf("it = %d \n", it);
   return dt;
 }
 
