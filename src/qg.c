@@ -18,6 +18,8 @@
 #include "extra.h"
 
 #define sq(x) ((x)*(x)) // alias for square function
+#define min(p,q) p > q ? q : p
+#define max(p,q) p < q ? q : p
 double pi = 3.141592653589793;
 
 // field variables
@@ -41,6 +43,10 @@ double dt = 0.;
 double tend = 1;
 double dt_out = 0.1;
 double t_out = 0;
+double dt_print = 0.1;
+double t_print = 0;
+double cfl = 0.2;
+double DT_max = 0;
 int it = 0;
 
 // physical constants and functions
@@ -53,11 +59,9 @@ double bc_fac = 0.;
 #define idx(i,j) (j)*Nxp1 + (i)
 
 // define forcing
-#ifdef _STOCHASTIC
-	// parameters
-	double eps = 1.;
-	double k_forc = 0.1;
-#endif
+double eps = 1.;
+double k_forc = 0.1;
+
 
 #include "domain.h"
 #include "elliptic.h"
@@ -86,7 +90,9 @@ int main(int argc,char* argv[])
   params = list_append(params, &dt_out, "dt_out", "double");
   params = list_append(params, &eps, "eps", "double");
   params = list_append(params, &k_forc, "k_forc", "double");
-	
+  params = list_append(params, &dt_print, "dt_print", "double");
+  params = list_append(params, &cfl, "cfl", "double");
+
   // Search for the configuration file with a given path or read params.in 
   if (argc == 2)
     strcpy(file_param,argv[1]); // default: params.in
@@ -105,14 +111,14 @@ int main(int argc,char* argv[])
   init_fft();
   init_timestep();
 
-	#ifdef _STOCHASTIC
-		init_stoch_forc();
-		printf("Stochastic forcing. \n");
-	#else
-		init_det_forc();
-		printf("Large-scale forcing. \n");
-	#endif
-	
+  #ifdef _STOCHASTIC
+    init_stoch_forc();
+    printf("Stochastic forcing. \n");
+  #else
+    init_det_forc();
+    printf("Large-scale forcing. \n");
+  #endif
+
   invert_pv(q,psi);
 
   list_nc = list_append(list_nc, psi,"psi", "double");
@@ -125,12 +131,18 @@ int main(int argc,char* argv[])
   /**
      Main Loop
   */
-  while(t<tend){
-    if ((t_out - t)/dt < 1){
-      printf("t_out = %e \n",t);
-			t_out += dt_out;
+  while(t < tend){
+    if (fabs (t - t_out) < TEPS*dt){
+      printf("Write output, t = %e \n",t);
+      t_out += dt_out;
       write_nc();
     }
+
+    if (t > t_print){ // only approximate here
+      fprintf(stdout, "i = %d, t = %e dt = %e \n",it, t, dt);
+      t_print += dt_print;
+    }
+
     timestep(q);
     it ++;
   }
@@ -140,12 +152,12 @@ int main(int argc,char* argv[])
      Cleanup
   */
 	
-	#ifdef _STOCHASTIC
-		clean_stoch_forcing();
-	#else
-		clean_det_forcing();
-	#endif
-	
+  #ifdef _STOCHASTIC
+    clean_stoch_forcing();
+  #else
+    clean_det_forcing();
+  #endif
+
   clean_fft();
   clean_timestep();
 	
@@ -154,5 +166,6 @@ int main(int argc,char* argv[])
   free(X);
   free(Y);
   if (list_nc) list_free(list_nc);
+  if (params) list_free(params);
 
 }

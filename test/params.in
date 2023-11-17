@@ -1,0 +1,19 @@
+#!sh
+# input parameter files
+
+Nx = 256
+Ny = 256
+Lx = 21.5443
+
+eps = 1
+k_forc = 0.1
+
+tau0 = 10
+nu = 0.001
+beta = 0
+
+bc_fac = 0
+
+dt = 1
+tend  = 100
+dt_out = 1

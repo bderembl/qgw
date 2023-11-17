@@ -36,10 +36,10 @@ void  rhs(double *q, double * f1){
 
   invert_pv(q, psi);
 	
-	#ifdef _STOCHASTIC
-		calc_forc();
-	#endif
-	
+  #ifdef _STOCHASTIC
+    calc_forc();
+  #endif
+
   for(int j = 1; j<Ny; j++){
     for(int i = 1;i <Nx; i++){
       f1[idx(i,j)] = -jacobian(psi, q)          \
