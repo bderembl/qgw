@@ -1,0 +1,149 @@
+#+OPTIONS: ^:nil
+
+* Stochastic forcing
+
+** Random number generator
+
+Here is a code that generate a random number from a normal distribution with the
+Box-Muller transform. We then compare the histogram with the true pdf
+
+
+#+begin_src python :results file output :exports both 
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.ion()
+
+def normal(x):
+    return np.exp(-x*x/2)/np.sqrt(2*np.pi)
+
+def box_muller(x,y):
+    return np.sqrt(-2.*np.log(x))*np.cos(2*np.pi*y)
+
+
+N = 100_000
+nbin = 100
+
+uniform_sample1 = np.random.rand(N)
+uniform_sample2 = np.random.rand(N)
+gaussian_bm = box_muller(uniform_sample1, uniform_sample2)
+
+hist, x = np.histogram(gaussian_bm, nbin, density=True)
+x = x[:-1] + (x[1] - x[0])/2
+
+plt.semilogy(x, hist, label='Histogram of a Box-Muller transform')
+plt.semilogy(x, normal(x), 'k--', label='Normal distribution')
+
+plt.legend()
+plt.xlabel("x")
+plt.ylabel("PDF")
+
+fname = 'img/box-muller.png'
+plt.savefig(fname)
+#+end_src
+
+#+RESULTS:
+[[file:]]
+
+
+[[file:img/box-muller.png]]
+
+
+** Time integration of Stochastic Differential Equation (SDE)
+
+Let us consider the Langevin equation
+
+$$ {\frac {dx_{t}}{dt}}=-\theta \,x_{t}+\sigma \,\eta (t) $$
+
+where $\eta (t)$, is a white noise.
+
+we can also write this equation as an Ornstein-Uhlenbeck proces
+
+$$ dx_{t}=\theta (\mu -x_{t})\,dt+\sigma \,dW_{t}$$
+
+with  $W_{t}$ denotes the Wiener process
+
+In the script below, we illustrate 3 ways to integrate this equation
+- The Euler-Maruyama method
+- AB2 for the deterministic part an Euler-Maruyama for the stochastic part
+- Standard AB2 
+
+To compare these scheme, we compute the variance of the resulting time series
+which should be
+
+$$\frac{\sigma^2}{2 \theta}
+
+for this O-U process.
+
+- TODO: finish convergence test.
+- TODO: biblio https://arxiv.org/pdf/1610.08417.pdf
+
+
+#+begin_src python :session :results output :exports both
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.ion()
+
+# Ornstein-Uhlenbeck parameters
+theta = 1.5
+mu = 0
+sigma = 0.8
+
+# time integration
+t0 = 0
+t_end = 1000
+dt = 1e-1
+N = int((t_end - t0)//dt)
+t = np.linspace(t0,t_end,N)
+
+# 3 solutions with 3 methods
+y_euler = np.zeros(N)
+y_ab2   = np.zeros(N)
+y_ab2_det   = np.zeros(N)
+
+# same noise for all integration schemes
+noise = np.random.normal(loc=0.0,scale=1.0,size=N)
+
+def rhs(y):
+    return theta*(mu - y)
+
+# Euler-Maruyama scheme
+for i in range(1,N):
+    y_euler[i] = y_euler[i-1] + rhs(y_euler[i-1])*dt + sigma*noise[i]*np.sqrt(dt)
+
+# AB2 scheme for the deterministic part and E-M for the stochastic part
+y_ab2[1] = y_euler[1]
+for i in range(1,N):
+    y_ab2[i] = y_ab2[i-1] + (3/2*rhs(y_ab2[i-1]) - 1/2*rhs(y_ab2[i-2]))*dt + sigma*noise[i]*np.sqrt(dt)
+
+# Deterministic AB2 scheme with noise included 
+def rhs2(y,noise):
+    return theta*(mu - y) + sigma*noise/np.sqrt(dt)
+
+y_ab2_det[1] = y_euler[1]
+for i in range(1,N):
+    y_ab2_det[i] = y_ab2_det[i-1] + (3/2*rhs2(y_ab2_det[i-1],noise[i-1]) - 1/2*rhs2(y_ab2_det[i-2], noise[i-2]))*dt
+
+#plt.figure()
+#plt.plot(t,y_euler,label='EM')
+#plt.plot(t,y_ab2,label='AB2 + EM')
+#plt.plot(t,y_ab2_det,label='AB2 (deterministic)')
+#plt.legend()
+#plt.xlim([t_end-10,t_end])
+
+
+print(f'Euler-Maruyama variance: {np.var(y_euler)}')
+print(f'AB2 + EM variance: {np.var(y_ab2)}')
+print(f'AB2_det variance: {np.var(y_ab2_det)}')
+print(f'Theoretical variance: {sigma**2/2/theta}')
+
+#+end_src
+
+#+RESULTS:
+: Euler-Maruyama variance: 0.24758823170119107
+: AB2 + EM variance: 0.23192587124964395
+: AB2_det variance: 0.2855061203520143
+: Theoretical variance: 0.21333333333333337

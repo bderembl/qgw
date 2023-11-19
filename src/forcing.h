@@ -25,6 +25,8 @@ double magnitude;
 double phase;
 double PI = 3.1415;
 
+#define normal_noise() (sqrt(-2.*log(( (double)(rand()) + 1. )/( (double)(RAND_MAX) + 2. ) ))*cos(2*pi*rand()/(double)RAND_MAX))
+
 /* Function to approximate inverse cumulative function of normal distribution, which I use to transform the random numbers from C
  to a normally distributed variable. From https://web.archive.org/web/20150910081113/http://home.online.no/~pjacklam/notes/invnorm/impl/sprouse/ltqnorm.c */
 
@@ -117,17 +119,6 @@ ltqnorm(double p)
 }
 
 // functions to calculate forcing
-
-void  init_det_forc(){
-
-  forc = calloc( Nxp1*Nyp1, sizeof( double ) );
-	
-  for(int j = 0; j<Nyp1; j++){
-    for(int i = 0; i <Nxp1; i++){
-      forc[idx(i,j)] = (-tau0/Ly*pi*sin(pi*Y[j]/Ly));
-    }
-  }
-}
 
 void  init_stoch_forc(){
 	

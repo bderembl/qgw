@@ -130,6 +130,17 @@ void timestep(double * q){
     }
   }
 
+	
+  #ifdef _STOCHASTIC
+    calc_forc();
+    for (int j = 0; j < Ny; j++){
+      for (int i = 0; i < Nx; i++){
+        q[idx(i,j)] += forc[idx(i,j)]*sqrt(dt);
+      }
+  }
+  #endif
+
+
   t = t + dt;
 
 }

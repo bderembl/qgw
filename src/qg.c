@@ -55,6 +55,7 @@ double nu = 0.;
 double tau0 = 0.;
 double bc_fac = 0.;
 
+#define forcing_q(t) (-tau0/Ly*pi*sin(pi*Y[j]/Ly))
 // grid indices
 #define idx(i,j) (j)*Nxp1 + (i)
 
@@ -114,9 +115,6 @@ int main(int argc,char* argv[])
   #ifdef _STOCHASTIC
     init_stoch_forc();
     printf("Stochastic forcing. \n");
-  #else
-    init_det_forc();
-    printf("Large-scale forcing. \n");
   #endif
 
   invert_pv(q,psi);

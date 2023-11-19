@@ -9,7 +9,7 @@
 
 void init_domain() {
 
-	Nxm1 = Nx - 1;
+  Nxm1 = Nx - 1;
   Nym1 = Ny - 1;
 
   Nxp1 = Nx + 1;
