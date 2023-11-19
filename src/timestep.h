@@ -41,9 +41,9 @@ void check_timestep(){
 
 void init_timestep(){
 
-  f0 = calloc( Nxp1*Nyp1, sizeof( double ) );
-  f1 = calloc( Nxp1*Nyp1, sizeof( double ) );
-  f2 = calloc( Nxp1*Nyp1, sizeof( double ) );
+  f0 = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
+  f1 = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
+  f2 = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
 	
   check_timestep();
 
@@ -61,15 +61,18 @@ double adjust_timestep(double *psi) {
 
   // Adjust dt according to CFL
   double dt_max = 1e30;
-  for(int j = 1; j<Ny; j++){
-    for(int i = 1;i <Nx; i++){
-      double u = -(psi[idx(i+1,j)] - psi[idx(i,j)])/Delta;
-      double v =  (psi[idx(i,j+1)] - psi[idx(i,j)])/Delta;
-      u = max(fabs(u), fabs(v));
 
-      if (u != 0.) {
-        double dt_loc = cfl*Delta/u;
-        if (dt_loc < dt_max) dt_max = dt_loc;
+  for(int k = 0; k<nl; k++){
+    for(int j = 1; j<Ny; j++){
+      for(int i = 1;i <Nx; i++){
+        double u = -(psi[idx(i+1,j,k)] - psi[idx(i,j,k)])/Delta;
+        double v =  (psi[idx(i,j+1,k)] - psi[idx(i,j,k)])/Delta;
+        u = max(fabs(u), fabs(v));
+
+        if (u != 0.) {
+          double dt_loc = cfl*Delta/u;
+          if (dt_loc < dt_max) dt_max = dt_loc;
+        }
       }
     }
   }
@@ -123,10 +126,11 @@ void timestep(double * q){
   double c1 = sq(dt)*(-dt/3 - dt0/2 - dt1/2)/(dt0*dt1);
   double c2 = sq(dt)*(dt/3 + dt0/2)/(dt1*(dt0 + dt1));
 
-
-  for (int j = 0; j < Ny; j++){
-    for (int i = 0; i < Nx; i++){
-    q[idx(i,j)] = q[idx(i,j)]  + c0*f0[idx(i,j)] + c1*f1[idx(i,j)] + c2*f2[idx(i,j)];
+  for(int k = 0; k<nl; k++){
+    for (int j = 0; j < Ny; j++){
+      for (int i = 0; i < Nx; i++){
+        q[idx(i,j,k)] = q[idx(i,j,k)]  + c0*f0[idx(i,j,k)] + c1*f1[idx(i,j,k)] + c2*f2[idx(i,j,k)];
+      }
     }
   }
 

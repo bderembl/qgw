@@ -20,7 +20,9 @@
 #define sq(x) ((x)*(x)) // alias for square function
 #define min(p,q) p > q ? q : p
 #define max(p,q) p < q ? q : p
+#define sign(x) ((x) > 0 ? 1 : -1)
 double pi = 3.141592653589793;
+#define nl_max 1000
 
 // field variables
 double *psi;
@@ -35,6 +37,8 @@ int Nx, Ny;
 int Nxm1, Nym1;
 int Nxp1, Nyp1;
 int nl = 1;
+double dh[nl_max] = {1.};
+double dhc[nl_max] = {1.};
 double Lx, Ly;
 double Delta;
 double t = 0;
@@ -52,7 +56,9 @@ int it = 0;
 double beta = 0.;
 double nu = 0.;
 double tau0 = 0.;
+double f_cor = 1.e-5;
 double bc_fac = 0.;
+double N2[nl_max] = {1.};
 
 #define forcing_q(t) (-tau0/Ly*pi*sin(pi*Y[j]/Ly))
 
@@ -73,6 +79,7 @@ int main(int argc,char* argv[])
   // add here variables to be read in the input file
   params = list_append(params, &Nx, "Nx", "int");
   params = list_append(params, &Ny, "Ny", "int");
+  params = list_append(params, &nl, "nl", "int");
   params = list_append(params, &Lx, "Lx", "double");
   params = list_append(params, &tau0, "tau0", "double");
   params = list_append(params, &beta, "beta", "double");
@@ -98,7 +105,7 @@ int main(int argc,char* argv[])
 
   init_domain();
   init_vars();
-  init_fft();
+  init_elliptic();
   init_timestep();
 
   invert_pv(q,psi);
@@ -136,6 +143,7 @@ int main(int argc,char* argv[])
 
   clean_fft();
   clean_timestep();
+  clean_eigmode();
 
   free(psi);
   free(q);

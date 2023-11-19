@@ -226,7 +226,7 @@ void write_nc() {
     for (int k = 0; k < nl; k++) {
       for (int j = 0; j < Nyp1; j++) {
         for (int i = 0; i < Nxp1; i++) {
-          field[Nyp1*Nxp1*k + Nxp1*j + i] = data_loc[idx(i,j)];
+          field[Nyp1*Nxp1*k + Nxp1*j + i] = data_loc[idx(i,j,k)];
         }
       }
     }
