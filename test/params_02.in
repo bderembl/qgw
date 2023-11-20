@@ -1,0 +1,22 @@
+#!sh
+# input parameter files
+# Stochastic forcing test, output is to be evaluated with python script test_energy_injection.py
+
+Nx = 128
+Ny = 128
+Lx = 1      
+
+eps = 1
+k_forc = 10
+
+tau0 = 0 
+nu = 0   
+beta = 0
+
+bc_fac = 0
+
+dt = 0.01
+tend  = 1
+dt_out = 0.01
+dt_print = 0.001
+
