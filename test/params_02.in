@@ -6,8 +6,8 @@ Nx = 128
 Ny = 128
 Lx = 1      
 
-eps = 1
-k_forc = 10
+sigma_f = 1
+k_f = 10
 
 tau0 = 0 
 nu = 0   

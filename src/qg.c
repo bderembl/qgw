@@ -4,6 +4,13 @@
    Compile with 
      gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -lnetcdf
 
+   Compilation flags
+     -D_STOCHASTIC : add a stochastic forcing
+
+   Run with
+     ./qg.e
+
+
    TODO
      - Documentation
      - Test cases
@@ -34,7 +41,6 @@ List *params;
 int Nx, Ny;
 int Nxm1, Nym1;
 int Nxp1, Nyp1;
-int N_c;
 int nl = 1;
 double Lx, Ly;
 double Delta;
@@ -58,11 +64,6 @@ double bc_fac = 0.;
 #define forcing_q(t) (-tau0/Ly*pi*sin(pi*Y[j]/Ly))
 // grid indices
 #define idx(i,j) (j)*Nxp1 + (i)
-
-// define forcing
-double eps = 1.;
-double k_forc = 0.1;
-
 
 #include "domain.h"
 #include "elliptic.h"
@@ -89,8 +90,8 @@ int main(int argc,char* argv[])
   params = list_append(params, &dt, "dt", "double");
   params = list_append(params, &tend, "tend", "double");
   params = list_append(params, &dt_out, "dt_out", "double");
-  params = list_append(params, &eps, "eps", "double");
-  params = list_append(params, &k_forc, "k_forc", "double");
+  params = list_append(params, &sigma_f, "sigma_f", "double");
+  params = list_append(params, &k_f, "k_f", "double");
   params = list_append(params, &dt_print, "dt_print", "double");
   params = list_append(params, &cfl, "cfl", "double");
 

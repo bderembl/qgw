@@ -2,6 +2,16 @@
 
 * Stochastic forcing
 
+** Formulation of the stochstic forcing
+There is the possibility to add a stochastic forcing term in the PV equation
+
+$$ \frac {q}{dt}= ... +\sigma \,\eta (t) $$
+
+where $\eta(t)$ is defined in the spectral space as
+
+$$\hat \eta (k,l) = \rho \sqrt{\sqrt{2 \pi K^2 dk} \exp{\left(- \frac{(|K| - k_f)^2 }{2 dk^2}\right)}}\exp{i\theta}$$
+where $\rho \sim \mathcal{N}(0,1)$ (normal distribution) and $\theta \sim U(0,2\pi)$ (uniform distribution $[0,2\pi]$)
+
 ** Random number generator
 
 Here is a code that generate a random number from a normal distribution with the
