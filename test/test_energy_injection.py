@@ -27,7 +27,7 @@ enstrophy = np.sum(q**2, axis = (-2,-1))*Delta**2/Lx**2
 
 plt.figure()
 plt.plot(time, energy, label = "observed")
-plt.plot(time, sigma_f*time, label = "expected") # so the energy injection rate is 5*10e-6
+plt.plot(time, sigma_f**2*time, label = "expected") 
 plt.legend()
 plt.title('energy input')
 plt.ylabel('Energy')
@@ -35,13 +35,9 @@ plt.xlabel('time')
 
 plt.figure()
 plt.plot(time, enstrophy, label = "observed")
-plt.plot(time, time*(2*np.pi)**2*k_f**2*sigma_f)
+plt.plot(time, time*(2*np.pi)**2*k_f**2*sigma_f**2)
 plt.title('enstrophy input')
 plt.ylabel('Enstrophy')
 plt.xlabel('time')
-
-# There is a slight offset, but frankly I don't care enough to dig here. It might be
-# just due to the randomness of the forcing, and as the random number generator I use
-# outputs the same series every time I can't test it quickly.
 
 f.close()

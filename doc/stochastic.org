@@ -10,7 +10,15 @@ $$ \frac {q}{dt}= ... +\sigma \,\eta (t) $$
 where $\eta(t)$ is defined in the spectral space as
 
 $$\hat \eta (k,l) = \rho \sqrt{\sqrt{2 \pi K^2 dk} \exp{\left(- \frac{(|K| - k_f)^2 }{2 dk^2}\right)}}\exp{i\theta}$$
-where $\rho \sim \mathcal{N}(0,1)$ (normal distribution) and $\theta \sim U(0,2\pi)$ (uniform distribution $[0,2\pi]$)
+where $\rho \sim \mathcal{N}(0,1)$ (normal distribution) and $\theta \sim U(0,2\pi)$ (uniform distribution $[0,2\pi]$).\\
+
+This shape corresponds to a forcing which is localised at $K = k_f$, but random in phase. The width of this forcign in spectral space is 
+the minimum numerical width, dk. The constants in front of the shape function guarantee proper normalisation for the energy injection solely
+to be determined by $\sigma$. 
+
+The local energy injection is $\sigma^2$ (the local enstrophy injection is $(2\pi k_f)^2\sigma^2$, as in FFTW the 
+frequencies are defined without prefactors of $2\pi$. Therefore, $k_f = 1/\lamba_f$, where $\lambda_f$ is the dominant 
+wavelenght of the forcing.)
 
 ** Random number generator
 
@@ -157,3 +165,6 @@ print(f'Theoretical variance: {sigma**2/2/theta}')
 : AB2 + EM variance: 0.23192587124964395
 : AB2_det variance: 0.2855061203520143
 : Theoretical variance: 0.21333333333333337
+
+
+The Euler-Maruyama Scheme allows us to effectively control the energy injection (shown in the script test_energy_injection.py in the /test directory.)

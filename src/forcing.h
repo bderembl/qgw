@@ -68,6 +68,7 @@ void  init_stoch_forc(){
 
 void calc_forc() {
   
+  // initiate forcing in spectral space
   for(int j = 1; j < N_c; j++){
     for(int i = 1; i < Nx; i++){
       
@@ -90,22 +91,29 @@ void calc_forc() {
     }
   }
 	
-	
+  // copy forcing into input array for FFTW operation (perform an out-of-place transform)
   for(int j = 0; j < N_c; j++){
     for(int i = 0; i < Nx; i++){
       in[f_idx(i,j)][0] = forc_f[f_idx(i,j)][0];
       in[f_idx(i,j)][1] = forc_f[f_idx(i,j)][1];
     }
   }
-	
+  
+  // execute FFT
   fftw_execute(transfo_inverse_forc);
+  
+  // Copy results into forcing vector to be used for time-stepping
+  // The result is of size Nx x Ny, but the fields (and the forcing vector) are Nxp1 x Nyp1 (as the periodic values are doubled).
+  // Therefore the last values of the forc() array are manually copied to be the same as the first in the last two loops.
+  // Forcing is non-zero on the boundaries, but I'm assuming the values there are calculated manually by the 
+  // boundary conditions anyway so I'm hoping it won't make a difference.
 
   for(int j = 0; j<Ny; j++){
     for(int i = 0; i<Nx; i++){
       forc[idx(i,j)] = out[c_idx(i,j)];
     }
   }
-	
+  
   for(int j = 0; j<Ny; j++){
     forc[idx(Nx,j)] = out[c_idx(0,j)];
   }
