@@ -153,8 +153,6 @@ int main(int argc,char* argv[])
 	
   #ifdef _STOCHASTIC
     clean_stoch_forcing();
-  #else
-    clean_det_forcing();
   #endif
 
   clean_fft();
