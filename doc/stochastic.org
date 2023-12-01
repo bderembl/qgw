@@ -19,13 +19,13 @@ such that we are forcing wavenumbers in a band of width $dk$ near wavenumber
 $k_f$. We want to adjust the prefactor $\lambda$ in order to control the energy
 injection rate. From the properties of Wiener's processes, we know that
 
-$$\operatorname {Var}(\hat q) = \hat Z = \sigma^2f^2(\mathbf k) t$$
+$$\mathrm {Var}(\hat q) = \hat Z = \sigma^2f^2(\mathbf k) t$$
 
 
-and $\operatorname {Var(\hat q)}$ is also the (spectral) enstrophy ($\hat Z$). The
+and $\mathrm {Var(\hat q)}$ is also the (spectral) enstrophy ($\hat Z$). The
 (spectral) energy is defined as
 
-$$\hat E = \frac{1}{{|\mathbf k|^2}}\operatorname {Var}(\hat q) $$
+$$\hat E = \frac{1}{{|\mathbf k|^2}}\mathrm {Var}(\hat q) $$
 
 The total energy is then the integral 
 
