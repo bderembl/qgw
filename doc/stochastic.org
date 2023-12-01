@@ -5,9 +5,57 @@
 ** Formulation of the stochstic forcing
 There is the possibility to add a stochastic forcing term in the PV equation
 
-$$ \frac {q}{dt}= ... +\sigma \,\eta (t) $$
+$$ \frac {dq}{dt}= ... +\sigma \,\eta (t) $$
 
-where $\eta(t)$ is defined in the spectral space as
+where $\eta(t)$ is a stochastic noise that we define now. Let us rewrite this equation in the spectral space and consider only the stochatic component
+
+$$ d \hat q = \sigma f(\mathbf k) dW_t $$
+
+where $W_t$ is a Wiener process and $f(\mathbf k)$ is a shape function in the spectral space:
+
+$$f(k) = \lambda \exp \left(- \frac{(|\mathbf k| - k_f)^2}{2 dk^2} \right) $$
+
+such that we are forcing wavenumbers in a band of width $dk$ near wavenumber
+$k_f$. We want to adjust the prefactor $\lambda$ in order to control the energy
+injection rate. From the properties of Wiener's processes, we know that
+
+$$\operatorname {Var}(\hat q) = \hat Z = \sigma^2f^2(\mathbf k) t$$
+
+
+and $\operatorname {Var(\hat q)}$ is also the (spectral) enstrophy ($\hat Z$). The
+(spectral) energy is defined as
+
+$$\hat E = \frac{1}{{|\mathbf k|^2}}\operatorname {Var}(\hat q) $$
+
+The total energy is then the integral 
+
+$$ E_v = \iint \hat E d \mathbf k$$
+
+Hence in order to set the energy injection rate as $E_v = \sigma^2 t$, $\lambda$
+has to satisfy
+
+$$\iint \frac{\lambda^2 }{{|\mathbf k|^2}} \exp \left(- \frac{(|\mathbf k| - k_f)^2}{dk^2} \right) d \mathbf k = 1$$
+
+we change variables to polar coordinates ($r = |\mathbf k|$)
+$$2\pi \int \frac{\lambda^2 }{{r}} \exp \left(- \frac{(r - k_f)^2}{dk^2} \right) d r = 1$$
+
+and proceed to a variable change $r - k_f = u$
+
+$$2\pi \int \frac{\lambda^2 }{{u+k_f}} \exp \left(- \frac{u^2}{dk^2} \right) d u = 1$$
+
+and then $v = u/dk$
+
+
+$$2\pi dk \int \frac{\lambda^2 }{{dkv+k_f}} \exp \left(- v^2 \right) d v = 1$$
+
+This equation is statisfied if
+
+$$2\pi dk  \frac{\lambda^2 }{{dkv+k_f}} = 2v$$
+
+that is
+
+$$\lambda = \sqrt{\frac{|(|\mathbf k| - k_f)| |\mathbf k|^2}{\pi dk^2}}$$
+
 
 $$\hat \eta (k,l) = \rho \sqrt{\sqrt{2 \pi K^2 dk} \exp{\left(- \frac{(|K| - k_f)^2 }{2 dk^2}\right)}}\exp{i\theta}$$
 where $\rho \sim \mathcal{N}(0,1)$ (normal distribution) and $\theta \sim U(0,2\pi)$ (uniform distribution $[0,2\pi]$).\\
