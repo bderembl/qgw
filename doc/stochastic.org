@@ -1,7 +1,6 @@
 #+OPTIONS: ^:nil
 
 * Stochastic forcing
-
 ** Formulation of the stochstic forcing
 There is the possibility to add a stochastic forcing term in the PV equation
 
@@ -60,13 +59,38 @@ $$\lambda = \sqrt{\frac{|(|\mathbf k| - k_f)| |\mathbf k|^2}{\pi dk^2}}$$
 $$\hat \eta (k,l) = \rho \sqrt{\sqrt{2 \pi K^2 dk} \exp{\left(- \frac{(|K| - k_f)^2 }{2 dk^2}\right)}}\exp{i\theta}$$
 where $\rho \sim \mathcal{N}(0,1)$ (normal distribution) and $\theta \sim U(0,2\pi)$ (uniform distribution $[0,2\pi]$).\\
 
-This shape corresponds to a forcing which is localised at $K = k_f$, but random in phase. The width of this forcign in spectral space is 
-the minimum numerical width, dk. The constants in front of the shape function guarantee proper normalisation for the energy injection solely
-to be determined by $\sigma$. 
+** Lennard's version of the stochastic forcing
 
-The local energy injection is $\sigma^2$ (the local enstrophy injection is $(2\pi k_f)^2\sigma^2$, as in FFTW the 
-frequencies are defined without prefactors of $2\pi$. Therefore, $k_f = 1/\lamba_f$, where $\lambda_f$ is the dominant 
-wavelenght of the forcing.)
+This version of the code supports the possibility to apply stochastic forcing in the barotropic qg equation by a spectrally located random forcing with a fixed energy injection rate $\sigma^2$. To understand this energy injection, we will first have to understand what the expression for energy in spectral space is.\\
+FFTW uses unnormalised transforms, hence
+
+$$\psi(x,y) = \Sigma^{N-1}_{n=0}\widehat{\psi}(k,l) e^{i\frac{2\pi mn}{N}}$$
+
+where $m$ is the index in real space ($x = (\delta x)*m$), $n$ is the index in spectral space ($k = (\delta k)*n, \delta k = 1/L$, our k/l don't include factors of $2\pi$!) and $N$ is the total number of points ($L=(\delta x) * N$). In order to make mathematics and our life easier, we will want to change to a continuous representation of the above case. We do so by introducing the variables $x,y$ and $k,l$ with the aforementioned definitions. We obtain
+
+$$\psi = \frac{1}{\delta k \delta l}\Sigma \widehat{\psi} \ e^{i2\pi (kx + ly)} \delta k \delta l \sim \frac{1}{\delta k^2}\int\int\widehat{\psi}e^{i2\pi (kx + ly)} dk \ dl$$
+
+From this we compute the domain-averaged energy as
+
+$$\frac{1}{L^2}\int\int \vert \nabla \psi \vert^2 dA = -\int\int\frac{(2\pi)^2(k^2 + l^2)}{\delta k^2}\vert \widehat{\psi}\vert^2 dk \ dl$$
+
+Now that we know the expression of the energy in spectral space, we return to the evolution equation of $\psi$ in spectral space to see how our forcing must be shaped and normalised. After transforming the dynamical equation we obtain
+
+$$-(2\pi)^2(k^2 + l^2)\delta \psi = ... \ + \ \sigma f(K) \delta W,$$
+
+where $\delta W$ denotes the Wiener process. To me it is easier to write this thing as $N(0,1)e^{i\phi}\sqrt{\delta t}$, i.e. at each time step we draw from a normal distribution $N$ with standart deviation $1$, multiply the result by a random phase $\phi$ and multiply it by $\delta t$. To obtain an integrable energy equation from this we take the magnitude and square both sides of this equation. After integration and division by $\delta t$ we recognise the left side as the time derivative of the energy, which is then equal to
+
+$$\int\int\frac{(2\pi)^2(k^2 + l^2)}{\delta k^2}\frac{\delta \widehat{\psi}^2}{\delta t} dk \ dl \sim \frac{\partial E}{\partial t} = \int\int \frac{\sigma^2 \vert f(K)\vert^2}{(2\pi)^2 K^2 \delta k^2}dk \ dl$$
+
+where $K = \sqrt{k^2 + l^2}$. We now transform to polar coordinates and try to evaluate this integral. We would like to choose a function $f$ for the integral to just give $\sigma^2$, as this is the value of the energy injection we would like to control. This is done easiest when the entire integrant is equal to a normalised Gaussian function centered on $k_f$, the forcing wavelength. If the gaussian is centered on a $k_f$ which is far away from both $0$ and $k_{max} = 1/2L$ and it falls off fast enough for its tails not to touch those boundaries, the value of the integral over the finite domain $[0, K_{max}]$ will be the same as from $[-\infty, \infty)$, i.e. 1.
+
+$$\sigma^2 \int_0^{K_{max}}\frac{\sigma^2 \vert f(K)\vert^2}{2\pi K \delta k^2} dK = \sigma^2 \int_{-\infty}^{\infty}\frac{1}{\delta k \sqrt{2\pi}} e^{-\frac{(K - k_f)^2}{2\delta k}} dK = \sigma^2$$
+
+From this condition we then get the shape of $f$, namely
+
+$$\sqrt{\sqrt{2 \pi K^2 \delta k} e^{- \frac{\vert K - k_f\vert^2 }{2 \delta k^2}}}$$
+
+This shape corresponds to a forcing which is localised at $K = k_f$ with a spectral width of $\delta k = 1/L$. 
 
 ** Random number generator
 
