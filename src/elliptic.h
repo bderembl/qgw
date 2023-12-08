@@ -12,7 +12,7 @@
 #include <fftw3.h>
 
 #include "eigmode.h"
-#define idx_in(i,j) (j)*Nxm1 + (i)
+#define idx_fft(i,j) (j-1)*Nxm1 + (i-1)
 
 double *in1;
 double *in2; 
@@ -58,7 +58,7 @@ void invert_pv(double *q, double *psi) {
         // inner loop on layers: projection on modes
         for (int l = 0; l < nl ; l++) {
           //        in1[idx_in(i,j)] = q[idx(i,j,k)];
-          in1[idx_in(i,j)] += cl2m[k*nl+l]*q[idx(i,j,l)];
+          in1[idx_fft(i,j)] += cl2m[k*nl+l]*q[idx(i,j,l)];
         }
       }
     }
@@ -71,7 +71,7 @@ void invert_pv(double *q, double *psi) {
       for (int i = 1; i < Nx; i++){ 
 
         double fact = - (sq(i*pi/Lx) + sq(j*pi/Ly) + iRd2[k]);
-        in2[idx_in(i,j)] = out1[idx_in(i,j)]/fact;
+        in2[idx_fft(i,j)] = out1[idx_fft(i,j)]/fact;
       }
     }
 
@@ -81,7 +81,7 @@ void invert_pv(double *q, double *psi) {
   // Scaling
     for(int j = 1; j<Ny; j++){
       for(int i = 1;i <Nx; i++){
-        out2[idx_in(i,j)] = out2[idx_in(i,j)]/(4*(Nxm1 + 1)*(Nym1 + 1));
+        out2[idx_fft(i,j)] = out2[idx_fft(i,j)]/(4*(Nxm1 + 1)*(Nym1 + 1));
       }
     }
 
@@ -98,7 +98,7 @@ void invert_pv(double *q, double *psi) {
           /*   po[] += m2l[]*pm[]; */
 
           // k is interpreted as the mode here
-          psi[idx(i,j,l)] += cm2l[l*nl+k]*out2[idx_in(i,j)]; 
+          psi[idx(i,j,l)] += cm2l[l*nl+k]*out2[idx_fft(i,j)]; 
         }
       }
     }

@@ -119,7 +119,7 @@ void eigmod ()
       amat[nl*l + l ] = - amat[nl*l + l-1];
     }
     else{
-      amat[0] = 0.;
+      amat[0] = 1.;
     }
 
     /* if (print2){ */

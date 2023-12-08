@@ -2,7 +2,14 @@
    QG model 
 
    Compile with 
-     gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -lnetcdf
+     gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -llapacke -lnetcdf
+
+   Compilation flags
+     -D_STOCHASTIC : add a stochastic forcing
+
+   Run with
+     ./qg.e
+
 
    TODO
      - Documentation
@@ -64,10 +71,10 @@ double N2[nl_max] = {1.};
 
 #include "domain.h"
 #include "elliptic.h"
+#include "forcing.h"
 #include "dynamics.h"
 #include "timestep.h"
 #include "netcdf_io.h"
-
 
 int main(int argc,char* argv[])
 {
@@ -88,6 +95,8 @@ int main(int argc,char* argv[])
   params = list_append(params, &dt, "dt", "double");
   params = list_append(params, &tend, "tend", "double");
   params = list_append(params, &dt_out, "dt_out", "double");
+  params = list_append(params, &sigma_f, "sigma_f", "double");
+  params = list_append(params, &k_f, "k_f", "double");
   params = list_append(params, &dt_print, "dt_print", "double");
   params = list_append(params, &cfl, "cfl", "double");
 
@@ -102,11 +111,17 @@ int main(int argc,char* argv[])
   /**
      Initialization
    */
-
+	
+	
   init_domain();
   init_vars();
   init_elliptic();
   init_timestep();
+
+  #ifdef _STOCHASTIC
+    init_stoch_forc();
+    printf("Stochastic forcing. \n");
+  #endif
 
   invert_pv(q,psi);
 
@@ -140,11 +155,14 @@ int main(int argc,char* argv[])
   /**
      Cleanup
   */
+	
+  #ifdef _STOCHASTIC
+    clean_stoch_forcing();
+  #endif
 
   clean_fft();
   clean_timestep();
   clean_eigmode();
-
   free(psi);
   free(q);
   free(X);

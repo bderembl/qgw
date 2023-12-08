@@ -9,9 +9,7 @@
 // grid indices
 #define idx(i,j,k) (k)*Nxp1*Nyp1 + (j)*Nxp1 + (i)
 
-
 void init_domain() {
-
 
   Nxm1 = Nx - 1;
   Nym1 = Ny - 1;
