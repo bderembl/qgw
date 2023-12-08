@@ -44,6 +44,5 @@ void  rhs(double *q, double * f1){
         + nu*laplacian(q);
     }
   }
-
 }
 

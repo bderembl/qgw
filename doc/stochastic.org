@@ -1,0 +1,242 @@
+#+OPTIONS: ^:nil
+
+* Stochastic forcing
+** Formulation of the stochstic forcing
+There is the possibility to add a stochastic forcing term in the PV equation
+
+$$ \frac {dq}{dt}= ... +\sigma \,\eta (t) $$
+
+where $\eta(t)$ is a stochastic noise that we define now. Let us rewrite this equation in the spectral space and consider only the stochatic component
+
+$$ d \hat q = \sigma f(\mathbf k) dW_t $$
+
+where $W_t$ is a Wiener process and $f(\mathbf k)$ is a shape function in the spectral space:
+
+$$f(k) = \lambda \exp \left(- \frac{(|\mathbf k| - k_f)^2}{2 dk^2} \right) $$
+
+such that we are forcing wavenumbers in a band of width $dk$ near wavenumber
+$k_f$. We want to adjust the prefactor $\lambda$ in order to control the energy
+injection rate. From the properties of Wiener's processes, we know that
+
+$$\mathrm {Var}(\hat q) = \hat Z = \sigma^2f^2(\mathbf k) t$$
+
+
+and $\mathrm {Var(\hat q)}$ is also the (spectral) enstrophy ($\hat Z$). The
+(spectral) energy is defined as
+
+$$\hat E = \frac{1}{{|\mathbf k|^2}}\mathrm {Var}(\hat q) $$
+
+The total energy is then the integral 
+
+$$ E_v = \iint \hat E d \mathbf k$$
+
+Hence in order to set the energy injection rate as $E_v = \sigma^2 t$, $\lambda$
+has to satisfy
+
+$$\iint \frac{\lambda^2 }{{|\mathbf k|^2}} \exp \left(- \frac{(|\mathbf k| - k_f)^2}{dk^2} \right) d \mathbf k = 1$$
+
+we change variables to polar coordinates ($r = |\mathbf k|$)
+$$2\pi \int \frac{\lambda^2 }{{r}} \exp \left(- \frac{(r - k_f)^2}{dk^2} \right) d r = 1$$
+
+and proceed to a variable change $r - k_f = u$
+
+$$2\pi \int \frac{\lambda^2 }{{u+k_f}} \exp \left(- \frac{u^2}{dk^2} \right) d u = 1$$
+
+and then $v = u/dk$
+
+
+$$2\pi dk \int \frac{\lambda^2 }{{dkv+k_f}} \exp \left(- v^2 \right) d v = 1$$
+
+This equation is statisfied if
+
+$$2\pi dk  \frac{\lambda^2 }{{dkv+k_f}} = 2v$$
+
+that is
+
+$$\lambda = \sqrt{\frac{|(|\mathbf k| - k_f)| |\mathbf k|^2}{\pi dk^2}}$$
+
+
+$$\hat \eta (k,l) = \rho \sqrt{\sqrt{2 \pi K^2 dk} \exp{\left(- \frac{(|K| - k_f)^2 }{2 dk^2}\right)}}\exp{i\theta}$$
+where $\rho \sim \mathcal{N}(0,1)$ (normal distribution) and $\theta \sim U(0,2\pi)$ (uniform distribution $[0,2\pi]$).\\
+
+** Lennard's version of the stochastic forcing
+
+This version of the code supports the possibility to apply stochastic forcing in the barotropic qg equation by a spectrally located random forcing with a fixed energy injection rate $\sigma^2$. To understand this energy injection, we will first have to understand what the expression for energy in spectral space is.\\
+FFTW uses unnormalised transforms, hence
+
+$$\psi(x,y) = \Sigma^{N-1}_{n=0}\widehat{\psi}(k,l) e^{i\frac{2\pi mn}{N}}$$
+
+where $m$ is the index in real space ($x = (\delta x)*m$), $n$ is the index in spectral space ($k = (\delta k)*n, \delta k = 1/L$, our k/l don't include factors of $2\pi$!) and $N$ is the total number of points ($L=(\delta x) * N$). In order to make mathematics and our life easier, we will want to change to a continuous representation of the above case. We do so by introducing the variables $x,y$ and $k,l$ with the aforementioned definitions. We obtain
+
+$$\psi = \frac{1}{\delta k \delta l}\Sigma \widehat{\psi} \ e^{i2\pi (kx + ly)} \delta k \delta l \sim \frac{1}{\delta k^2}\int\int\widehat{\psi}e^{i2\pi (kx + ly)} dk \ dl$$
+
+From this we compute the domain-averaged energy as
+
+$$\frac{1}{L^2}\int\int \vert \nabla \psi \vert^2 dA = -\int\int\frac{(2\pi)^2(k^2 + l^2)}{\delta k^2}\vert \widehat{\psi}\vert^2 dk \ dl$$
+
+Now that we know the expression of the energy in spectral space, we return to the evolution equation of $\psi$ in spectral space to see how our forcing must be shaped and normalised. After transforming the dynamical equation we obtain
+
+$$-(2\pi)^2(k^2 + l^2)\delta \psi = ... \ + \ \sigma f(K) \delta W,$$
+
+where $\delta W$ denotes the Wiener process. To me it is easier to write this thing as $N(0,1)e^{i\phi}\sqrt{\delta t}$, i.e. at each time step we draw from a normal distribution $N$ with standart deviation $1$, multiply the result by a random phase $\phi$ and multiply it by $\delta t$. To obtain an integrable energy equation from this we take the magnitude and square both sides of this equation. After integration and division by $\delta t$ we recognise the left side as the time derivative of the energy, which is then equal to
+
+$$\int\int\frac{(2\pi)^2(k^2 + l^2)}{\delta k^2}\frac{\delta \widehat{\psi}^2}{\delta t} dk \ dl \sim \frac{\partial E}{\partial t} = \int\int \frac{\sigma^2 \vert f(K)\vert^2}{(2\pi)^2 K^2 \delta k^2}dk \ dl$$
+
+where $K = \sqrt{k^2 + l^2}$. We now transform to polar coordinates and try to evaluate this integral. We would like to choose a function $f$ for the integral to just give $\sigma^2$, as this is the value of the energy injection we would like to control. This is done easiest when the entire integrant is equal to a normalised Gaussian function centered on $k_f$, the forcing wavelength. If the gaussian is centered on a $k_f$ which is far away from both $0$ and $k_{max} = 1/2L$ and it falls off fast enough for its tails not to touch those boundaries, the value of the integral over the finite domain $[0, K_{max}]$ will be the same as from $[-\infty, \infty)$, i.e. 1.
+
+$$\sigma^2 \int_0^{K_{max}}\frac{\sigma^2 \vert f(K)\vert^2}{2\pi K \delta k^2} dK = \sigma^2 \int_{-\infty}^{\infty}\frac{1}{\delta k \sqrt{2\pi}} e^{-\frac{(K - k_f)^2}{2\delta k}} dK = \sigma^2$$
+
+From this condition we then get the shape of $f$, namely
+
+$$\sqrt{\sqrt{2 \pi K^2 \delta k} e^{- \frac{\vert K - k_f\vert^2 }{2 \delta k^2}}}$$
+
+This shape corresponds to a forcing which is localised at $K = k_f$ with a spectral width of $\delta k = 1/L$. 
+
+** Random number generator
+
+Here is a code that generate a random number from a normal distribution with the
+Box-Muller transform. We then compare the histogram with the true pdf
+
+
+#+begin_src python :results file output :exports both 
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.ion()
+
+def normal(x):
+    return np.exp(-x*x/2)/np.sqrt(2*np.pi)
+
+def box_muller(x,y):
+    return np.sqrt(-2.*np.log(x))*np.cos(2*np.pi*y)
+
+
+N = 100_000
+nbin = 100
+
+uniform_sample1 = np.random.rand(N)
+uniform_sample2 = np.random.rand(N)
+gaussian_bm = box_muller(uniform_sample1, uniform_sample2)
+
+hist, x = np.histogram(gaussian_bm, nbin, density=True)
+x = x[:-1] + (x[1] - x[0])/2
+
+plt.semilogy(x, hist, label='Histogram of a Box-Muller transform')
+plt.semilogy(x, normal(x), 'k--', label='Normal distribution')
+
+plt.legend()
+plt.xlabel("x")
+plt.ylabel("PDF")
+
+fname = 'img/box-muller.png'
+plt.savefig(fname)
+#+end_src
+
+#+RESULTS:
+[[file:]]
+
+
+[[file:img/box-muller.png]]
+
+
+** Time integration of Stochastic Differential Equation (SDE)
+
+Let us consider the Langevin equation
+
+$$ {\frac {dx_{t}}{dt}}=-\theta \,x_{t}+\sigma \,\eta (t) $$
+
+where $\eta (t)$, is a white noise.
+
+we can also write this equation as an Ornstein-Uhlenbeck proces
+
+$$ dx_{t}=\theta (\mu -x_{t})\,dt+\sigma \,dW_{t}$$
+
+with  $W_{t}$ denotes the Wiener process
+
+In the script below, we illustrate 3 ways to integrate this equation
+- The Euler-Maruyama method
+- AB2 for the deterministic part an Euler-Maruyama for the stochastic part
+- Standard AB2 
+
+To compare these scheme, we compute the variance of the resulting time series
+which should be
+
+$$\frac{\sigma^2}{2 \theta}
+
+for this O-U process.
+
+- TODO: finish convergence test.
+- TODO: biblio https://arxiv.org/pdf/1610.08417.pdf
+
+
+#+begin_src python :session :results output :exports both
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.ion()
+
+# Ornstein-Uhlenbeck parameters
+theta = 1.5
+mu = 0
+sigma = 0.8
+
+# time integration
+t0 = 0
+t_end = 1000
+dt = 1e-1
+N = int((t_end - t0)//dt)
+t = np.linspace(t0,t_end,N)
+
+# 3 solutions with 3 methods
+y_euler = np.zeros(N)
+y_ab2   = np.zeros(N)
+y_ab2_det   = np.zeros(N)
+
+# same noise for all integration schemes
+noise = np.random.normal(loc=0.0,scale=1.0,size=N)
+
+def rhs(y):
+    return theta*(mu - y)
+
+# Euler-Maruyama scheme
+for i in range(1,N):
+    y_euler[i] = y_euler[i-1] + rhs(y_euler[i-1])*dt + sigma*noise[i]*np.sqrt(dt)
+
+# AB2 scheme for the deterministic part and E-M for the stochastic part
+y_ab2[1] = y_euler[1]
+for i in range(1,N):
+    y_ab2[i] = y_ab2[i-1] + (3/2*rhs(y_ab2[i-1]) - 1/2*rhs(y_ab2[i-2]))*dt + sigma*noise[i]*np.sqrt(dt)
+
+# Deterministic AB2 scheme with noise included 
+def rhs2(y,noise):
+    return theta*(mu - y) + sigma*noise/np.sqrt(dt)
+
+y_ab2_det[1] = y_euler[1]
+for i in range(1,N):
+    y_ab2_det[i] = y_ab2_det[i-1] + (3/2*rhs2(y_ab2_det[i-1],noise[i-1]) - 1/2*rhs2(y_ab2_det[i-2], noise[i-2]))*dt
+
+#plt.figure()
+#plt.plot(t,y_euler,label='EM')
+#plt.plot(t,y_ab2,label='AB2 + EM')
+#plt.plot(t,y_ab2_det,label='AB2 (deterministic)')
+#plt.legend()
+#plt.xlim([t_end-10,t_end])
+
+
+print(f'Euler-Maruyama variance: {np.var(y_euler)}')
+print(f'AB2 + EM variance: {np.var(y_ab2)}')
+print(f'AB2_det variance: {np.var(y_ab2_det)}')
+print(f'Theoretical variance: {sigma**2/2/theta}')
+
+#+end_src
+
+#+RESULTS:
+: Euler-Maruyama variance: 0.24758823170119107
+: AB2 + EM variance: 0.23192587124964395
+: AB2_det variance: 0.2855061203520143
+: Theoretical variance: 0.21333333333333337
+
+
+The Euler-Maruyama Scheme allows us to effectively control the energy injection (shown in the script test_energy_injection.py in the /test directory.)

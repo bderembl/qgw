@@ -4,6 +4,13 @@
    Compile with 
      gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -lnetcdf
 
+   Compilation flags
+     -D_STOCHASTIC : add a stochastic forcing
+
+   Run with
+     ./qg.e
+
+
    TODO
      - Documentation
      - Test cases
@@ -55,13 +62,15 @@ double tau0 = 0.;
 double bc_fac = 0.;
 
 #define forcing_q(t) (-tau0/Ly*pi*sin(pi*Y[j]/Ly))
+// grid indices
+#define idx(i,j) (j)*Nxp1 + (i)
 
 #include "domain.h"
 #include "elliptic.h"
+#include "forcing.h"
 #include "dynamics.h"
 #include "timestep.h"
 #include "netcdf_io.h"
-
 
 int main(int argc,char* argv[])
 {
@@ -81,6 +90,8 @@ int main(int argc,char* argv[])
   params = list_append(params, &dt, "dt", "double");
   params = list_append(params, &tend, "tend", "double");
   params = list_append(params, &dt_out, "dt_out", "double");
+  params = list_append(params, &sigma_f, "sigma_f", "double");
+  params = list_append(params, &k_f, "k_f", "double");
   params = list_append(params, &dt_print, "dt_print", "double");
   params = list_append(params, &cfl, "cfl", "double");
 
@@ -95,11 +106,17 @@ int main(int argc,char* argv[])
   /**
      Initialization
    */
-
+	
+	
   init_domain();
   init_vars();
   init_fft();
   init_timestep();
+
+  #ifdef _STOCHASTIC
+    init_stoch_forc();
+    printf("Stochastic forcing. \n");
+  #endif
 
   invert_pv(q,psi);
 
@@ -133,10 +150,14 @@ int main(int argc,char* argv[])
   /**
      Cleanup
   */
+	
+  #ifdef _STOCHASTIC
+    clean_stoch_forcing();
+  #endif
 
   clean_fft();
   clean_timestep();
-
+	
   free(psi);
   free(q);
   free(X);

@@ -26,11 +26,11 @@ void check_timestep(){
   */
   
   if (beta != 0 && nu != 0) {
-    DT_max = min(1/(2.*beta*Lx),sq(Lx/Nx)/nu/2.);
-  } else if (beta == 0 && nu != 0) {
-    DT_max = 1/(2.*beta*Lx);
+    DT_max = min(1/(2.*beta*Lx),sq(Lx/Nx)/nu/20.);
   } else if (beta != 0 && nu == 0) {
-    DT_max = sq(Lx/Nx)/nu/2.;
+    DT_max = 1/(2.*beta*Lx);
+  } else if (beta == 0 && nu != 0) {
+    DT_max = sq(Lx/Nx)/nu/20.;
   }
   
   if (DT_max != 0 && dt > DT_max) {
@@ -75,7 +75,8 @@ double adjust_timestep(double *psi) {
   }
 
   //TODO  MPI reduce here
-  if ((dt_max > dt) && (dt_max < DT_max)){
+
+  if ((dt_max > dt) && (dt < DT_max)){
     dt = (dt + 0.1*dt_max)/1.1;
     if (dt > DT_max) dt = DT_max;
   }
@@ -95,7 +96,6 @@ double adjust_timestep(double *psi) {
         dt = dt1;
     }
   }
-
   return dt;
 }
 
@@ -129,6 +129,17 @@ void timestep(double * q){
     q[idx(i,j)] = q[idx(i,j)]  + c0*f0[idx(i,j)] + c1*f1[idx(i,j)] + c2*f2[idx(i,j)];
     }
   }
+
+	
+  #ifdef _STOCHASTIC
+    calc_forc();
+    for (int j = 0; j < Ny; j++){
+      for (int i = 0; i < Nx; i++){
+        q[idx(i,j)] += forc[idx(i,j)]*sqrt(dt);
+      }
+  }
+  #endif
+
 
   t = t + dt;
 
