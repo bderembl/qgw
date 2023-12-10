@@ -9,9 +9,9 @@
      - Variable time step
  */
 
-double *f0;
-double *f1;
-double *f2;
+double *f0_ab;
+double *f1_ab;
+double *f2_ab;
 
 double dt0, dt1;
 
@@ -41,9 +41,9 @@ void check_timestep(){
 
 void init_timestep(){
 
-  f0 = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
-  f1 = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
-  f2 = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
+  f0_ab = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
+  f1_ab = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
+  f2_ab = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
 	
   check_timestep();
 
@@ -103,17 +103,16 @@ double adjust_timestep(double *psi) {
 }
 
 
-
 void timestep(double * q){
 
   // Swap rhs variables for next values
-  double *swap = f2;
-  f2 = f1;
-  f1 = f0;
-  f0 = swap;
+  double *swap = f2_ab;
+  f2_ab = f1_ab;
+  f1_ab = f0_ab;
+  f0_ab = swap;
 
   // compute new rhs
-  rhs(q, f0);
+  rhs(q, f0_ab);
 
   // adjust time step
   dt1 = dt0;
@@ -129,11 +128,10 @@ void timestep(double * q){
   for(int k = 0; k<nl; k++){
     for (int j = 0; j < Ny; j++){
       for (int i = 0; i < Nx; i++){
-        q[idx(i,j,k)] = q[idx(i,j,k)]  + c0*f0[idx(i,j,k)] + c1*f1[idx(i,j,k)] + c2*f2[idx(i,j,k)];
+        q[idx(i,j,k)] = q[idx(i,j,k)]  + c0*f0_ab[idx(i,j,k)] + c1*f1_ab[idx(i,j,k)] + c2*f2_ab[idx(i,j,k)];
       }
     }
   }
-
 	
   #ifdef _STOCHASTIC
     calc_forc();
@@ -151,8 +149,8 @@ void timestep(double * q){
 
 void clean_timestep(){
 
-  free(f0);
-  free(f1);
-  free(f2);
+  free(f0_ab);
+  free(f1_ab);
+  free(f2_ab);
 
 }

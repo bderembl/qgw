@@ -63,11 +63,12 @@ int it = 0;
 double beta = 0.;
 double nu = 0.;
 double tau0 = 0.;
-double f_cor = 1.e-5;
+double forc_mode = 1.0;
+double f0 = 1.e-5;
 double bc_fac = 0.;
 double N2[nl_max] = {1.};
 
-#define forcing_q(t) (-tau0/Ly*pi*sin(pi*Y[j]/Ly))
+#define forcing_q(t) (-tau0/dh[0]*forc_mode*pi/Ly*sin(forc_mode*pi*Y[j]/Ly))
 
 #include "domain.h"
 #include "elliptic.h"
@@ -88,9 +89,13 @@ int main(int argc,char* argv[])
   params = list_append(params, &Ny, "Ny", "int");
   params = list_append(params, &nl, "nl", "int");
   params = list_append(params, &Lx, "Lx", "double");
+  params = list_append(params, &dh, "dh", "array");
   params = list_append(params, &tau0, "tau0", "double");
+  params = list_append(params, &forc_mode, "forc_mode", "double");
+  params = list_append(params, &f0, "f0", "double");
   params = list_append(params, &beta, "beta", "double");
   params = list_append(params, &nu, "nu", "double");
+  params = list_append(params, &N2, "N2", "array");
   params = list_append(params, &bc_fac, "bc_fac", "double");
   params = list_append(params, &dt, "dt", "double");
   params = list_append(params, &tend, "tend", "double");
@@ -112,12 +117,11 @@ int main(int argc,char* argv[])
      Initialization
    */
 	
-	
   init_domain();
   init_vars();
   init_elliptic();
   init_timestep();
-
+    
   #ifdef _STOCHASTIC
     init_stoch_forc();
     printf("Stochastic forcing. \n");
@@ -139,6 +143,7 @@ int main(int argc,char* argv[])
     if (fabs (t - t_out) < TEPS*dt){
       printf("Write output, t = %e \n",t);
       t_out += dt_out;
+      invert_pv(q,psi);
       write_nc();
     }
 

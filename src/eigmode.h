@@ -81,7 +81,7 @@ int compare_i (const void* a, const void* b) {
 
 /**
  Main program */
-void eigmod ()
+void compute_eigmode ()
 {
   
   fprintf(stdout,"Compute vertical modes .. ");
@@ -90,62 +90,40 @@ void eigmod ()
     htotal += dh[k];
     
 
-  int print = 0;
-//  int print2 = 0;
+  int print = 1;
     
     // initialize matrix
-    double * amat;
-    amat = malloc (nl*nl*sizeof(double));
+    double * Gamma_mat;
+    Gamma_mat = malloc (nl*nl*sizeof(double));
 
     for (int m = 0; m < nl ; m++) {
       for (int k = 0; k < nl ; k++) {
-        amat[nl*k + m] = 0.;
+        Gamma_mat[nl*k + m] = 0.;
       }
     }
      
     if (nl > 1){
 
       int l = 0;
-      amat[nl*l + l+1] = -sq(f_cor)/N2[l]/( dhc[l]*dh[l]);
-      amat[nl*l + l ] = - amat[nl*l + l+1];
+      Gamma_mat[nl*l + l+1] = -sq(f0)/N2[l]/( dhc[l]*dh[l]);
+      Gamma_mat[nl*l + l ] = - Gamma_mat[nl*l + l+1];
 
       for (int l = 1; l < nl-1 ; l++) {
-        amat[nl*l+l-1] = -sq(f_cor)/N2[l-1]/( dhc[l-1]*dh[l]);
-        amat[nl*l+l+1] = -sq(f_cor)/N2[l]/( dhc[l]*dh[l]);
-        amat[nl*l+ l ] = - amat[nl*l+l-1] - amat[nl*l+l+1];
+        Gamma_mat[nl*l+l-1] = -sq(f0)/N2[l-1]/( dhc[l-1]*dh[l]);
+        Gamma_mat[nl*l+l+1] = -sq(f0)/N2[l]/( dhc[l]*dh[l]);
+        Gamma_mat[nl*l+ l ] = - Gamma_mat[nl*l+l-1] - Gamma_mat[nl*l+l+1];
       }
       l = nl-1;
-      amat[nl*l + l-1] = -sq(f_cor)/N2[l-1]/( dhc[l-1]*dh[l]);
-      amat[nl*l + l ] = - amat[nl*l + l-1];
+      Gamma_mat[nl*l + l-1] = -sq(f0)/N2[l-1]/( dhc[l-1]*dh[l]);
+      Gamma_mat[nl*l + l ] = - Gamma_mat[nl*l + l-1];
     }
     else{
-      amat[0] = 1.;
+      Gamma_mat[0] = 1.;
     }
 
-    /* if (print2){ */
-
-    /*   printf("fo = %g\n",f_cor); */
-    /*   for (int l = 0; l < nl ; l++) { */
-    /*     scalar Fr1 = Frl[l]; */
-    /*     printf("%i, Fr = %g\n",l, Fr1[]); */
-    /*     printf("%i, dh = %g\n",l, dh[l]); */
-    /*   } */
-    /*   print_matrix_rowmajor( "a matrix", nl,nl, amat, nl); */
-    /*   print2 = 0; */
-    /* } */
-
-/*     // store amat in streching matrix (tridiagonal matrix) */
-/*     for (int l = 0; l < nl ; l++) { */
-/*       scalar sm0 = strechmat[3*l]; */
-/* //      scalar sm1 = strechmat[3*l+1]; */
-/*       scalar sm2 = strechmat[3*l+2]; */
-
-/*       sm0[] = nl*l+l-1 < 0 ? 0. : amat[nl*l+l-1]/sq(Ro[]); */
-/* //      sm1[] = amat[nl*l+ l ]/sq(Ro[]); */
-/*       sm2[] = nl*l+ l+1 > nl-1 ? 0. : amat[nl*l+l-1]/sq(Ro[]); */
-
-    /* } */
-
+    if (print){
+      print_matrix_rowmajor( "Gamma matrix", nl,nl, Gamma_mat, nl);
+    }
 
     /**
        Declare variables for lapack
@@ -164,7 +142,7 @@ void eigmod ()
 
     struct array_i* wr2 = (struct array_i*) malloc(nl * sizeof(struct array_i));
 
-   int info = LAPACKE_dgeev( LAPACK_ROW_MAJOR, 'V', 'V', nl, amat, nl, wr, wi,
+   int info = LAPACKE_dgeev( LAPACK_ROW_MAJOR, 'V', 'V', nl, Gamma_mat, nl, wr, wi,
                               vl, nl, vr, nl );
 
     if (info < 0) {
@@ -265,27 +243,19 @@ void eigmod ()
     // set BT mode to zero
     iRd2[0] = 0.;
 
-    if (print)
-      {
-    /* for (int m = 0; m < nl ; m++) { */
-    /*   for (int k = 0; k < nl ; k++) { */
-    /*     scalar l2m = cl2m[m*nl+k]; */
-    /*     scalar m2l = cm2l[m*nl+k]; */
-    /*     vl[m*nl+k] = l2m[]; */
-    /*     vr[m*nl+k] = m2l[]; */
-    /*   } */
-    /* } */
-    print_matrix_rowmajor( "Right eigenvectors (renorm)", nl, nl, cm2l, nl );
-    print_matrix_rowmajor( "Left eigenvectors (renorm)", nl, nl, cl2m, nl );
-    for (int k = 0; k < nl ; k++) {
-      printf("vp: %g %i\n", wr[k], wr2[k].index);
-      printf("iRd2: %g , def radius: %g\n", iRd2[k], iRd2[k] > 0 ? sqrt(1/iRd2[k]) : 0);
-    }
-    print = 0;
+    if (print) {
+
+      print_matrix_rowmajor( "Right eigenvectors (renorm)", nl, nl, cm2l, nl );
+      print_matrix_rowmajor( "Left eigenvectors (renorm)", nl, nl, cl2m, nl );
+      printf("\n");
+      printf("Deformation radii: \n");
+      for (int k = 0; k < nl ; k++) {
+        printf("iRd2: %g , def radius: %g\n", iRd2[k], iRd2[k] > 0 ? sqrt(1/iRd2[k]) : 0);
       }
+    }
     
 
-  free(amat);
+  free(Gamma_mat);
   free(wr);
   free(wr2);
   free(wi);
@@ -294,6 +264,6 @@ void eigmod ()
   free(tmp);
 
 
-  fprintf(stdout,"ok\n ");
+  fprintf(stdout,"End eigenmode computation\n ");
 }
 

@@ -35,15 +35,17 @@
 void  rhs(double *q, double * f1){
 
   invert_pv(q, psi);
+
   for(int k = 0; k<nl; k++){
     for(int j = 1; j<Ny; j++){
       for(int i = 1;i <Nx; i++){
         f1[idx(i,j,k)] = -jacobian(psi, q)        \
           - beta_effect(psi)                    \
-          + forcing_q(t)                        \
+          + (k == 0 ? forcing_q(t) : 0.)             \
           + nu*laplacian(q);
       }
     }
   }
+
 }
 

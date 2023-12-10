@@ -12,7 +12,6 @@
 #include <fftw3.h>
 
 #include "eigmode.h"
-#define idx_fft(i,j) (j-1)*Nxm1 + (i-1)
 
 double *in1;
 double *in2; 
@@ -36,11 +35,11 @@ void init_elliptic(){
 
   // Prepare vertical mode inversion
   init_eigmode();
+  compute_eigmode();
 
 }
 
 void invert_pv(double *q, double *psi) {
-
 
   // reset psi. Temporary: only needed if doing FFT mode by mode
   for(int k = 0; k<nl; k++){
@@ -51,15 +50,18 @@ void invert_pv(double *q, double *psi) {
     }
   }
 
-
+  // loop on modes
   for(int k = 0; k<nl; k++){
+    int ll = 0;
     for(int j = 1; j<Ny; j++){
       for(int i = 1; i <Nx; i++){
+        in1[ll] = 0;
         // inner loop on layers: projection on modes
         for (int l = 0; l < nl ; l++) {
           //        in1[idx_in(i,j)] = q[idx(i,j,k)];
-          in1[idx_fft(i,j)] += cl2m[k*nl+l]*q[idx(i,j,l)];
+          in1[ll] += cl2m[k*nl+l]*q[idx(i,j,l)];
         }
+        ll += 1;
       }
     }
     
@@ -67,11 +69,13 @@ void invert_pv(double *q, double *psi) {
   fftw_execute(transfo_direct);
 
   // solve elliptic in fourrier space
+  ll = 0;
     for(int j = 1; j < Ny; j++){ // f = -g / ( kx^2 + ky^2 )
-      for (int i = 1; i < Nx; i++){ 
+      for (int i = 1; i < Nx; i++){
 
         double fact = - (sq(i*pi/Lx) + sq(j*pi/Ly) + iRd2[k]);
-        in2[idx_fft(i,j)] = out1[idx_fft(i,j)]/fact;
+        in2[ll] = out1[ll]/fact;
+        ll += 1;
       }
     }
 
@@ -79,30 +83,26 @@ void invert_pv(double *q, double *psi) {
   fftw_execute(transfo_inverse);
 
   // Scaling
+  ll = 0;
     for(int j = 1; j<Ny; j++){
       for(int i = 1;i <Nx; i++){
-        out2[idx_fft(i,j)] = out2[idx_fft(i,j)]/(4*(Nxm1 + 1)*(Nym1 + 1));
+//        out2[idx_fft(i,j)] = out2[idx_fft(i,j)]/(4*(Nxm1 + 1)*(Nym1 + 1));
+        out2[ll] = out2[ll]/(4*(Nxm1 + 1)*(Nym1 + 1));
+        ll += 1;
       }
     }
 
-    // FINISH HERE..
-
+  ll = 0;
     for(int j = 1;j<Ny; j++){
       for(int i = 1;i <Nx; i++){
-        // outer loop on layer
+        // loop on layer: populating psi (layer l)
         for (int l = 0; l < nl ; l++) {
-          /* // inner loop on modes: projection on layer */
-          /* for (int m = 0; m < nl ; m++) { */
-          /*   scalar pm  = pom[m]; */
-          /*   scalar m2l = cm2l[l*nl+m]; */
-          /*   po[] += m2l[]*pm[]; */
-
-          // k is interpreted as the mode here
-          psi[idx(i,j,l)] += cm2l[l*nl+k]*out2[idx_fft(i,j)]; 
+          psi[idx(i,j,l)] += cm2l[l*nl+k]*out2[ll];
         }
+        ll += 1;
       }
     }
-  } // layer loop
+  } // mode loop
 
   // adjust boundary conditions
   adjust_bc(q, psi);
