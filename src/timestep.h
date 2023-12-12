@@ -9,9 +9,9 @@
      - Variable time step
  */
 
-double *f0;
-double *f1;
-double *f2;
+double *f0_ab;
+double *f1_ab;
+double *f2_ab;
 
 double dt0, dt1;
 
@@ -32,18 +32,28 @@ void check_timestep(){
   } else if (beta == 0 && nu != 0) {
     DT_max = sq(Lx/Nx)/nu/20.;
   }
-  
+
+  /**
+     Adjusts dt with forcing
+     U ~ forcing*dt*L
+     dt = sqrt(cfl*Delta/forcing*L)
+   */
+
+  dt = 1e-3*sqrt(cfl*Delta/(tau0/dh[0]*forc_mode*pi/Ly*Ly));
+
   if (DT_max != 0 && dt > DT_max) {
     dt = DT_max; 
   }
+  printf("Maximum time step: DT_MAX = %g \n", DT_max);
+  printf("Initial time step: dt = %g \n", dt);
 	
 }
 
 void init_timestep(){
 
-  f0 = calloc( Nxp1*Nyp1, sizeof( double ) );
-  f1 = calloc( Nxp1*Nyp1, sizeof( double ) );
-  f2 = calloc( Nxp1*Nyp1, sizeof( double ) );
+  f0_ab = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
+  f1_ab = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
+  f2_ab = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
 	
   check_timestep();
 
@@ -60,28 +70,28 @@ void init_timestep(){
 double adjust_timestep(double *psi) {
 
   // Adjust dt according to CFL
-  double dt_max = 1e30;
-  for(int j = 1; j<Ny; j++){
-    for(int i = 1;i <Nx; i++){
-      double u = -(psi[idx(i+1,j)] - psi[idx(i,j)])/Delta;
-      double v =  (psi[idx(i,j+1)] - psi[idx(i,j)])/Delta;
-      u = max(fabs(u), fabs(v));
+  double dt_max = HUGE;
 
-      if (u != 0.) {
-        double dt_loc = cfl*Delta/u;
-        if (dt_loc < dt_max) dt_max = dt_loc;
+  for(int k = 0; k<nl; k++){
+    for(int j = 1; j<Ny; j++){
+      for(int i = 1;i <Nx; i++){
+        double u = -(psi[idx(i+1,j,k)] - psi[idx(i,j,k)])/Delta;
+        double v =  (psi[idx(i,j+1,k)] - psi[idx(i,j,k)])/Delta;
+        u = max(fabs(u), fabs(v));
+
+        if (u != 0.) {
+          double dt_loc = cfl*Delta/u;
+          if (dt_loc < dt_max) dt_max = dt_loc;
+        }
       }
     }
   }
 
-  //TODO  MPI reduce here
+  //TODO  MPI reduce here for dt_max
 
-  if ((dt_max > dt) && (dt < DT_max)){
-    dt = (dt + 0.1*dt_max)/1.1;
-    if (dt > DT_max) dt = DT_max;
-  }
-
-  if (dt_max < dt) dt = dt_max;
+  if (dt < dt_max) dt = 2.*dt;
+  if (dt > DT_max) dt = DT_max;
+  if (dt > dt_max) dt = dt_max;
 
   // Adjust dt to reach t_out (from Basilisk)
   if (t_out > t + TEPS) {
@@ -100,17 +110,16 @@ double adjust_timestep(double *psi) {
 }
 
 
-
 void timestep(double * q){
 
   // Swap rhs variables for next values
-  double *swap = f2;
-  f2 = f1;
-  f1 = f0;
-  f0 = swap;
+  double *swap = f2_ab;
+  f2_ab = f1_ab;
+  f1_ab = f0_ab;
+  f0_ab = swap;
 
   // compute new rhs
-  rhs(q, f0);
+  rhs(q, f0_ab);
 
   // adjust time step
   dt1 = dt0;
@@ -123,13 +132,13 @@ void timestep(double * q){
   double c1 = sq(dt)*(-dt/3 - dt0/2 - dt1/2)/(dt0*dt1);
   double c2 = sq(dt)*(dt/3 + dt0/2)/(dt1*(dt0 + dt1));
 
-
-  for (int j = 0; j < Ny; j++){
-    for (int i = 0; i < Nx; i++){
-    q[idx(i,j)] = q[idx(i,j)]  + c0*f0[idx(i,j)] + c1*f1[idx(i,j)] + c2*f2[idx(i,j)];
+  for(int k = 0; k<nl; k++){
+    for (int j = 0; j < Ny; j++){
+      for (int i = 0; i < Nx; i++){
+        q[idx(i,j,k)] = q[idx(i,j,k)]  + c0*f0_ab[idx(i,j,k)] + c1*f1_ab[idx(i,j,k)] + c2*f2_ab[idx(i,j,k)];
+      }
     }
   }
-
 	
   #ifdef _STOCHASTIC
     calc_forc();
@@ -147,8 +156,8 @@ void timestep(double * q){
 
 void clean_timestep(){
 
-  free(f0);
-  free(f1);
-  free(f2);
+  free(f0_ab);
+  free(f1_ab);
+  free(f2_ab);
 
 }

@@ -1,5 +1,7 @@
 /**
    Stochastic forcing functions
+
+   TODO: forcing only active in upper layer. needs to be generalized
 	 
 */
 
@@ -37,10 +39,12 @@ void  init_stoch_forc(){
   forc_f   = fftw_alloc_complex(Nx*N_c);
   in       = fftw_alloc_complex(Nx*N_c);
 
-	
+  // upper layer only
+  int k = 0;
+
   for(int j = 0; j<Nyp1; j++){
     for(int i = 0; i <Nxp1; i++){
-      forc[idx(i,j)] = 0.;
+      forc[idx(i,j,k)] = 0.;
     }
   }
   
@@ -108,21 +112,24 @@ void calc_forc() {
   // Forcing is non-zero on the boundaries, but I'm assuming the values there are calculated manually by the 
   // boundary conditions anyway so I'm hoping it won't make a difference.
 
+  // upper layer only
+  int k = 0;
+
   for(int j = 0; j<Ny; j++){
     for(int i = 0; i<Nx; i++){
-      forc[idx(i,j)] = out[c_idx(i,j)];
+      forc[idx(i,j,k)] = out[c_idx(i,j)];
     }
   }
   
   for(int j = 0; j<Ny; j++){
-    forc[idx(Nx,j)] = out[c_idx(0,j)];
+    forc[idx(Nx,j,k)] = out[c_idx(0,j)];
   }
 	
   for(int i = 0; i<Ny; i++){
-    forc[idx(i,Ny)] = out[c_idx(i,0)];
+    forc[idx(i,Ny,k)] = out[c_idx(i,0)];
   }
 	
-  forc[idx(Nx,Ny)] = out[c_idx(0,0)];
+  forc[idx(Nx,Ny,k)] = out[c_idx(0,0)];
 }
 
 void clean_stoch_forcing(){
