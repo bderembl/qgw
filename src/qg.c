@@ -28,6 +28,7 @@
 #define min(p,q) p > q ? q : p
 #define max(p,q) p < q ? q : p
 #define sign(x) ((x) > 0 ? 1 : -1)
+#define HUGE 1e30
 double pi = 3.141592653589793;
 #define nl_max 1000
 
@@ -53,8 +54,6 @@ double dt = 0.;
 double tend = 1;
 double dt_out = 0.1;
 double t_out = 0;
-double dt_print = 0.1;
-double t_print = 0;
 double cfl = 0.2;
 double DT_max = 0;
 int it = 0;
@@ -97,12 +96,10 @@ int main(int argc,char* argv[])
   params = list_append(params, &nu, "nu", "double");
   params = list_append(params, &N2, "N2", "array");
   params = list_append(params, &bc_fac, "bc_fac", "double");
-  params = list_append(params, &dt, "dt", "double");
   params = list_append(params, &tend, "tend", "double");
   params = list_append(params, &dt_out, "dt_out", "double");
   params = list_append(params, &sigma_f, "sigma_f", "double");
   params = list_append(params, &k_f, "k_f", "double");
-  params = list_append(params, &dt_print, "dt_print", "double");
   params = list_append(params, &cfl, "cfl", "double");
 
   // Search for the configuration file with a given path or read params.in 
@@ -140,6 +137,9 @@ int main(int argc,char* argv[])
      Main Loop
   */
   while(t < tend){
+
+    fprintf(stdout, "i = %d, t = %e dt = %e \n",it, t, dt);
+
     if (fabs (t - t_out) < TEPS*dt){
       printf("Write output, t = %e \n",t);
       t_out += dt_out;
@@ -147,10 +147,6 @@ int main(int argc,char* argv[])
       write_nc();
     }
 
-    if (t > t_print){ // only approximate here
-      fprintf(stdout, "i = %d, t = %e dt = %e \n",it, t, dt);
-      t_print += dt_print;
-    }
 
     timestep(q);
     it ++;

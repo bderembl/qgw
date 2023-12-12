@@ -32,10 +32,20 @@ void check_timestep(){
   } else if (beta == 0 && nu != 0) {
     DT_max = sq(Lx/Nx)/nu/20.;
   }
-  
+
+  /**
+     Adjusts dt with forcing
+     U ~ forcing*dt*L
+     dt = sqrt(cfl*Delta/forcing*L)
+   */
+
+  dt = 1e-3*sqrt(cfl*Delta/(tau0/dh[0]*forc_mode*pi/Ly*Ly));
+
   if (DT_max != 0 && dt > DT_max) {
     dt = DT_max; 
   }
+  printf("Maximum time step: DT_MAX = %g \n", DT_max);
+  printf("Initial time step: dt = %g \n", dt);
 	
 }
 
@@ -60,7 +70,7 @@ void init_timestep(){
 double adjust_timestep(double *psi) {
 
   // Adjust dt according to CFL
-  double dt_max = 1e30;
+  double dt_max = HUGE;
 
   for(int k = 0; k<nl; k++){
     for(int j = 1; j<Ny; j++){
@@ -77,14 +87,11 @@ double adjust_timestep(double *psi) {
     }
   }
 
-  //TODO  MPI reduce here
+  //TODO  MPI reduce here for dt_max
 
-  if ((dt_max > dt) && (dt < DT_max)){
-    dt = (dt + 0.1*dt_max)/1.1;
-    if (dt > DT_max) dt = DT_max;
-  }
-
-  if (dt_max < dt) dt = dt_max;
+  if (dt < dt_max) dt = 2.*dt;
+  if (dt > DT_max) dt = DT_max;
+  if (dt > dt_max) dt = dt_max;
 
   // Adjust dt to reach t_out (from Basilisk)
   if (t_out > t + TEPS) {

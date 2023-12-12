@@ -20,6 +20,5 @@ nu = 100
 hEkb = 0
 
 # timestepping
-dt = 100.0
-tend  = 1000
-dt_out = 100
+tend  = 10000
+dt_out = 1000

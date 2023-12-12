@@ -1,5 +1,4 @@
 #include <netcdf.h>
-#define HUGE 1e30
 #define nodata HUGE
 
 
