@@ -6,6 +6,7 @@
 
    Compilation flags
      -D_STOCHASTIC : add a stochastic forcing
+     -D_MPI : lets the program know it's running in mpi
 
    Run with
      ./qg.e
@@ -21,8 +22,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-
+#include <fftw3.h>
 #include "extra.h"
+
+#ifdef _MPI
+  #include <mpi.h>
+  #include <fftw3-mpi.h>
+  #include "unistd.h" //just for sleep function
+#endif
 
 #define sq(x) ((x)*(x)) // alias for square function
 #define min(p,q) p > q ? q : p
@@ -38,12 +45,53 @@ double *q;
 double *X;
 double *Y;
 
+double *psi_out;
+double *q_out;
+
+double *K;
+double *L;
+
+double *in1;
+double *in2; 
+double *out1; 
+double *out2; 
+
 List *params; 
 
 // space and time constants
 int Nx, Ny;
 int Nxm1, Nym1;
 int Nxp1, Nyp1;
+
+#ifdef _MPI 
+  //local MPI indices
+  int Nyt; 
+  int Nytm1;
+  int Nytp1;
+  int Ny_start; 
+  int Ny_startm1;
+
+  int rank;
+  int n_ranks;
+  
+  // MPI FFTW
+  ptrdiff_t NY, NX;
+  ptrdiff_t alloc_local, local_n0, local_0_start;
+
+  // MPI communication variables
+  int *size_gather;
+  int *start_gather;
+  int *rows_gather;
+  int size_gather_local;
+  int Ny_send_start;
+  int Ny_send_rows;
+
+
+#endif
+
+// Output variable
+int NYp1;
+
 int nl = 1;
 double dh[nl_max] = {1.};
 double dhc[nl_max] = {1.};
@@ -57,6 +105,8 @@ double t_out = 0;
 double cfl = 0.2;
 double DT_max = 0;
 int it = 0;
+
+fftw_plan transfo_direct, transfo_inverse;
 
 // physical constants and functions
 double beta = 0.;
@@ -78,7 +128,24 @@ double N2[nl_max] = {1.};
 
 int main(int argc,char* argv[])
 {
-  
+
+  // sleep loop to attach debugger
+  int ii=0;
+
+  //while (0 == ii) sleep(5);
+
+  #ifdef _MPI
+    MPI_Init(&argc, &argv);
+    fftw_mpi_init();
+
+    // find out your own rank
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    // find out total number of ranks
+    MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
+
+    fprintf(stdout, "Hello, I'm rank %d and I know there are a total of %d ranks. \n", rank, n_ranks);
+  #endif
   /**
      Namelist and parameters
    */
@@ -107,18 +174,27 @@ int main(int argc,char* argv[])
     strcpy(file_param,argv[1]); // default: params.in
 
   read_params(params, file_param);
-  create_outdir();
-  backup_config(file_param);
+
+  // Only rank 0 should create outdir when run in MPI
+  #ifdef _MPI
+    if (rank == 0){
+      create_outdir();
+      backup_config(file_param);
+    }
+  #else   
+    create_outdir();
+    backup_config(file_param);
+  #endif
   
   /**
      Initialization
    */
-	
+
+  init_elliptic();
   init_domain();
   init_vars();
-  init_elliptic();
   init_timestep();
-    
+
   #ifdef _STOCHASTIC
     init_stoch_forc();
     printf("Stochastic forcing. \n");
@@ -126,25 +202,54 @@ int main(int argc,char* argv[])
 
   invert_pv(q,psi);
 
-  list_nc = list_append(list_nc, psi,"psi", "double");
-  list_nc = list_append(list_nc, q, "q", "double");
+  // Prepare output variables
   char file_tmp[90];
   sprintf (file_tmp,"%s%s", dir_out, "vars.nc");
-  //create_nc("vars.nc");
-  create_nc(file_tmp);
+
+  #ifdef _MPI
+    gather_info();
+    if (rank == 0){
+      psi_out = calloc( Nxp1*Nytp1*nl, sizeof( double ) );
+      q_out = calloc( Nxp1*Nytp1*nl, sizeof( double ) );
+      list_nc = list_append(list_nc, psi_out,"psi", "double");
+      list_nc = list_append(list_nc, q_out, "q", "double");
+      create_nc(file_tmp);
+    }
+  #else 
+    list_nc = list_append(list_nc, psi,"psi", "double");
+    list_nc = list_append(list_nc, q, "q", "double");
+    create_nc(file_tmp);
+  #endif
 
   /**
      Main Loop
   */
+  fprintf(stdout, "rank %d arrived at barrier\n", rank);
+  MPI_Barrier(MPI_COMM_WORLD);
+  fprintf(stdout, "rank %d passed barrier\n", rank);
+
+  sleep(2);
+
   while(t < tend){
 
     fprintf(stdout, "i = %d, t = %e dt = %e \n",it, t, dt);
 
     if (fabs (t - t_out) < TEPS*dt){
-      printf("Write output, t = %e \n",t);
+      
       t_out += dt_out;
       invert_pv(q,psi);
-      write_nc();
+
+      // write output
+      #ifdef _MPI
+        gather_output();
+        if (rank == 0){
+          printf("Write output, t = %e \n",t);
+          write_nc();
+        }
+      #else 
+        write_nc();
+      #endif
+
     }
 
 
@@ -168,7 +273,14 @@ int main(int argc,char* argv[])
   free(q);
   free(X);
   free(Y);
+  
+  free(psi_out);
+  free(q_out);
+
   if (list_nc) list_free(list_nc);
   if (params) list_free(params);
-
+  
+  #ifdef _MPI
+    MPI_Finalize();
+  #endif
 }

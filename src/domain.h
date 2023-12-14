@@ -11,26 +11,43 @@
 
 void init_domain() {
 
-  Nxm1 = Nx - 1;
-  Nym1 = Ny - 1;
-
-  Nxp1 = Nx + 1;
-  Nyp1 = Ny + 1;
-
   Delta = Lx/Nx;
-  Ly = Ny*Delta;
+  #ifdef _MPI
+    Ly = Nyt*Delta;
+  #else
+    Ly = Ny*Delta;
+  #endif
 
-
+  // Coordinates in real space
   X = calloc( Nxp1, sizeof( double ) );
-  Y = calloc( Nxp1, sizeof( double ) );
+  Y = calloc( Nyp1, sizeof( double ) );
 
   for(int i = 0; i <Nxp1; i++)
     X[i] = i*Delta;
-  for(int j = 0; j<Nyp1; j++)
-    Y[j] = j*Delta;
+  #ifdef _MPI
+    for(int j = 0; j<Nyp1; j++)
+      Y[j] = (j+Ny_startm1)*Delta;
+  #else
+    for(int j = 0; j<Nyp1; j++)
+      Y[j] = j*Delta;
+  #endif
 
-  for (int l = 0; l < nl-1; l++)
-    dhc[l] = 0.5*(dh[l] + dh[l+1]);
+
+  // Coordinates in sinus space
+  K = calloc( Nxp1, sizeof( double ) );
+  L = calloc( Nyp1, sizeof( double ) );
+
+  for(int i = 1; i <Nx; i++)
+    K[i] = pi*(i)/Lx;
+
+  #ifdef _MPI
+    for(int j = 1; j<Ny; j++)
+      L[j] = pi*(j + Ny_start)/Ly;
+  #else
+    for(int j = 1; j<Ny; j++)
+      L[j] = pi*(j)/Ly;
+  #endif
+
 }
 
 

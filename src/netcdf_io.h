@@ -29,7 +29,16 @@ char * nc_varname[1000];
 int nc_rec = -1;
 
 void create_nc(char* file_out)
-{
+{  
+   // Output size variable is changing with MPI
+   #ifdef _MPI
+      NYp1 = Nytp1;
+      NY = Nyt;
+   #else
+      NYp1 = Nyp1;
+      NY = Ny;
+   #endif
+
    sprintf (file_nc,"%s", file_out);
 //  if (pid() == 0) { // master
 
@@ -51,7 +60,7 @@ void create_nc(char* file_out)
    if ((nc_err = nc_def_dim(ncid, LVL_NAME, nl, &lvl_dimid)))
       ERR(nc_err);
 #endif
-   if ((nc_err = nc_def_dim(ncid, Y_NAME, Nyp1, &y_dimid)))
+   if ((nc_err = nc_def_dim(ncid, Y_NAME, NYp1, &y_dimid)))
       ERR(nc_err);
    if ((nc_err = nc_def_dim(ncid, X_NAME, Nxp1, &x_dimid)))
       ERR(nc_err);
@@ -115,11 +124,11 @@ void create_nc(char* file_out)
       ERR(nc_err);
 
    /*  write coordinates*/
-   float yc[Ny+1], xc[Nx+1];
+   float yc[NY+1], xc[Nx+1];
    for (int i = 0; i < Nx+1; i++){
       xc[i] = i*Delta;
    }
-   for (int i = 0; i < Ny+1; i++){
+   for (int i = 0; i < NY+1; i++){
       yc[i] = i*Delta;
    }
 
@@ -174,7 +183,7 @@ void write_nc() {
 
 
 
-  float * field = (float *)malloc(Nxp1*Nyp1*nl*sizeof(float));
+  float * field = (float *)malloc(Nxp1*NYp1*nl*sizeof(float));
 
 //  float ** field = matrix_new (N_out, N_out, sizeof(float));
   
@@ -200,10 +209,10 @@ void write_nc() {
   count[0] = 1;
 #if LAYERS
   count[1] = nl;
-  count[2] = Nyp1;
+  count[2] = NYp1;
   count[3] = Nxp1;
 #else
-  count[1] = Nyp1;
+  count[1] = NYp1;
   count[2] = Nxp1;
 #endif  
 
@@ -211,10 +220,10 @@ void write_nc() {
 
     // TODO: FOR MPI
     for (int k = 0; k < nl; k++) {
-      for (int j = 0; j < Nyp1; j++) {
+      for (int j = 0; j < NYp1; j++) {
         for (int i = 0; i < Nxp1; i++) {
-//          field[Nyp1*Nxp1*k + Nxp1*j + i] = nodata; // for MPI
-          field[Nyp1*Nxp1*k + Nxp1*j + i] = 0.;
+//          field[NYp1*Nxp1*k + Nxp1*j + i] = nodata; // for MPI
+          field[NYp1*Nxp1*k + Nxp1*j + i] = 0.;
         }
       }
     }
@@ -223,9 +232,9 @@ void write_nc() {
     // TODO: FOR MPI
     double * data_loc = (double*)list_nc[iv].data;
     for (int k = 0; k < nl; k++) {
-      for (int j = 0; j < Nyp1; j++) {
+      for (int j = 0; j < NYp1; j++) {
         for (int i = 0; i < Nxp1; i++) {
-          field[Nyp1*Nxp1*k + Nxp1*j + i] = data_loc[idx(i,j,k)];
+          field[NYp1*Nxp1*k + Nxp1*j + i] = data_loc[NYp1*Nxp1*k + Nxp1*j + i];
         }
       }
     }
@@ -258,3 +267,173 @@ void write_nc() {
   /* } // master */
 //   printf("*** SUCCESS writing example file %s -- %d!\n", file_nc, nc_rec);
 }
+
+void gather_info(){
+   // First rank gathers information about the other processes, to be able to properly handle 
+   // their data.
+
+   size_gather = malloc( n_ranks*sizeof( int ) );
+   start_gather = malloc( n_ranks*sizeof( int ) );
+   rows_gather = malloc( n_ranks*sizeof( int ) );
+   
+   if (rank == 0 && rank == n_ranks-1){
+      size_gather_local = Nyp1*Nxp1*nl;
+      Ny_send_start = Ny_start - 1;
+      Ny_send_rows = Nyp1;
+   } else if( rank == 0 ){
+      size_gather_local = Ny*Nxp1*nl;
+      Ny_send_start = Ny_start - 1;
+      Ny_send_rows = Ny;
+   } else if ( rank == n_ranks - 1 ) {
+      size_gather_local = Ny*Nxp1*nl;
+      Ny_send_start = Ny_start;
+      Ny_send_rows = Ny;
+   } else {
+      size_gather_local = Nym1*Nxp1*nl;
+      Ny_send_start = Ny_start;
+      Ny_send_rows = Nym1;
+   }
+
+   MPI_Gather(&size_gather_local, 1, MPI_INT, size_gather, 1, MPI_INT, 0, MPI_COMM_WORLD);
+   MPI_Gather(&Ny_send_start, 1, MPI_INT, start_gather, 1, MPI_INT, 0, MPI_COMM_WORLD);
+   MPI_Gather(&Ny_send_rows, 1, MPI_INT, rows_gather, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+   if (rank == 0){
+      fprintf(stdout, "I'm rank %d, I now know that I have to gather ", rank);
+      for (int i = 0;i <n_ranks; i++){
+         fprintf(stdout, "%d data points from rank %d, ", size_gather[i], i);
+      }
+      fprintf(stdout, "and I believe that's it. \n");
+   }
+
+}
+
+void gather_output(){
+   // function to gather information from other ranks before writing output
+
+   if (rank ==0){
+      // Copy own data chunk into psi and q arrays
+      if (n_ranks == 1){
+         for (int k = 0; k < nl; k++){
+            for (int j=0; j < Nyp1; j++){
+               for (int i=0; i < Nxp1; i++){
+                  psi_out[idx(i,j,k)] = psi[idx(i,j,k)];
+               }
+            }
+         }
+         for (int k = 0; k < nl; k++){
+            for (int j=0; j < Nyp1; j++){
+               for (int i=0; i < Nxp1; i++){
+                  q_out[idx(i,j,k)] = q[idx(i,j,k)];
+               }
+            }
+         }
+      } else { // Else rank 0 also has to receive if it is not the only rank
+         for (int k = 0; k < nl; k++){
+            for (int j=0; j < Ny; j++){
+               for (int i=0; i < Nxp1; i++){
+                  int idx_loc = k*Nxp1*Nyp1 + Nxp1*j + i;
+                  int idx_glob = k*Nxp1*Nytp1 + j*Nxp1 + i;
+                  psi_out[idx_glob] = psi[idx_loc];
+               }
+            }
+         }
+         for (int k = 0; k < nl; k++){
+            for (int j=0; j < Ny; j++){
+               for (int i=0; i < Nxp1; i++){
+                  int idx_loc = k*Nxp1*Nyp1 + Nxp1*j + i;
+                  int idx_glob = k*Nxp1*Nytp1 + j*Nxp1 + i;
+                  q_out[idx_glob] = q[idx_loc];
+               }
+            }
+         }
+         
+         // receive remaining chunks and copy into arrays
+         for (int ii = 1;ii <n_ranks; ii++){
+                     
+            double *recv_psi;
+            double *recv_q;
+               
+            // receive psi arrays
+            MPI_Status  status1;
+
+            recv_psi = calloc( size_gather[ii], sizeof( double ) );
+
+            MPI_Recv(recv_psi, size_gather[ii], MPI_DOUBLE, ii, 0, MPI_COMM_WORLD, &status1);
+            
+            // Copy psi into output array
+            int j_start = start_gather[ii];
+            int j_end = start_gather[ii] + rows_gather[ii]; // starting point + number of rows
+
+            for (int k = 0; k < nl; k++){
+               for (int j= j_start; j < j_end; j++){
+                  for (int i=0; i < Nxp1; i++){
+                     int idx_loc = k*Nxp1*rows_gather[ii] + Nxp1*(j - j_start) + i;
+                     int idx_glob = k*Nxp1*Nytp1 + j*Nxp1 + i;
+                     psi_out[idx_glob] = recv_psi[idx_loc];
+                  }
+               }
+            }
+
+            // receive q arrays
+            recv_q = calloc( size_gather[ii], sizeof( double ) );
+
+            MPI_Status  status2;
+            MPI_Recv(recv_q, size_gather[ii], MPI_DOUBLE, ii, 1, MPI_COMM_WORLD, &status2);
+            
+            // Copy q into output array
+            
+            for (int k = 0; k < nl; k++){
+               for (int j= j_start; j < j_end; j++){
+                  for (int i=0; i < Nxp1; i++){
+                     int idx_loc = k*Nxp1*rows_gather[ii] + Nxp1*(j - j_start) + i;
+                     int idx_glob = k*Nxp1*Nytp1 + j*Nxp1 + i;
+                     q_out[idx_glob] = recv_q[idx_loc];
+                  }
+               }
+            }
+
+            free(recv_psi);
+            free(recv_q);
+         }  
+         
+      }
+   } else {
+      
+      double *send_psi;
+      double *send_q;
+      // send arrays from other ranks
+      send_psi = calloc( size_gather_local, sizeof( double ) );
+
+      // copy psi arrays into sending allocation
+      for (int k = 0; k < nl; k++){
+         for (int j= 1; j < Ny_send_rows+1; j++){
+            for (int i=0; i < Nxp1; i++){
+               int idx_loc = k*(Nxp1*Ny_send_rows) + Nxp1*(j-1) + i;
+               send_psi[idx_loc] = psi[idx(i,j,k)];
+            }
+         }
+      }
+
+      MPI_Send(send_psi, size_gather_local, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+
+      send_q = calloc( size_gather_local, sizeof( double ) );
+
+      // copy q arrays into sending allocation
+      for (int k = 0; k < nl; k++){
+         for (int j= 1; j < Ny_send_rows+1; j++){
+            for (int i=0; i < Nxp1; i++){
+               int idx_loc = k*(Nxp1*Ny_send_rows) + Nxp1*(j-1) + i;
+               send_q[idx_loc] = q[idx(i,j,k)];
+            }
+         }
+      }
+
+      MPI_Send(send_q, size_gather_local, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
+
+      free(send_psi);
+      free(send_q);
+   }
+
+
+} 

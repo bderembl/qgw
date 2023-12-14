@@ -16,6 +16,9 @@ double *iRd2;
 
 void init_eigmode(){
 
+  for (int l = 0; l < nl-1; l++)
+    dhc[l] = 0.5*(dh[l] + dh[l+1]);
+
   cl2m = calloc( nl*nl, sizeof( double ) );
   cm2l = calloc( nl*nl, sizeof( double ) );
   iRd2 = calloc( nl, sizeof( double ) );
