@@ -2,20 +2,21 @@
    QG model 
 
    Compile with 
-     gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -llapacke -lnetcdf
+     gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -llapacke -lnetcdf 
+   If run with MPI compile with 
+    mpicc -O3 qg.c -o qg.e -lfftw3_mpi -lfftw3 -lm -llapacke -lnetcdf -D_MPI
 
    Compilation flags
      -D_STOCHASTIC : add a stochastic forcing
-     -D_MPI : lets the program know it's running in mpi
-
+    
    Run with
      ./qg.e
-
+   or with
+     mpirun -n NPROC qg.e
 
    TODO
      - Documentation
      - Test cases
-     - MPI
      - GPU
 */
 
@@ -45,16 +46,22 @@ double *q;
 double *X;
 double *Y;
 
-double *psi_out;
-double *q_out;
-
+// Fourier Coefficients
 double *K;
 double *L;
 
+// output variables for MPI output
+double *psi_out; 
+double *q_out;
+int NYp1;
+
+// FFTW in/outputs and plans
 double *in1;
 double *in2; 
 double *out1; 
 double *out2; 
+
+fftw_plan transfo_direct, transfo_inverse;
 
 List *params; 
 
@@ -64,7 +71,7 @@ int Nxm1, Nym1;
 int Nxp1, Nyp1;
 
 #ifdef _MPI 
-  //local MPI indices
+  //local or global MPI indices
   int Nyt; 
   int Nytm1;
   int Nytp1;
@@ -85,12 +92,9 @@ int Nxp1, Nyp1;
   int size_gather_local;
   int Ny_send_start;
   int Ny_send_rows;
-
-
 #endif
 
-// Output variable
-int NYp1;
+// Physical Parameters
 int nl = 1;
 double dh[nl_max] = {1.};
 double dhc[nl_max] = {1.};
@@ -104,10 +108,6 @@ double t_out = 0;
 double cfl = 0.2;
 double DT_max = 0;
 int it = 0;
-
-fftw_plan transfo_direct, transfo_inverse;
-
-// physical constants and functions
 double beta = 0.;
 double nu = 0.;
 double tau0 = 0.;
@@ -118,6 +118,7 @@ double N2[nl_max] = {1.};
 
 #define forcing_q(t) (-tau0/dh[0]*forc_mode*pi/Ly*sin(forc_mode*pi*Y[j]/Ly))
 
+// Local header files
 #include "domain.h"
 #include "elliptic.h"
 #include "forcing.h"
@@ -134,6 +135,7 @@ int main(int argc,char* argv[])
   //while (0 == ii) sleep(5);
 
   #ifdef _MPI
+    // Initiate MPI
     MPI_Init(&argc, &argv);
     fftw_mpi_init();
 
@@ -142,9 +144,8 @@ int main(int argc,char* argv[])
 
     // find out total number of ranks
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
-
-    fprintf(stdout, "Hello, I'm rank %d and I know there are a total of %d ranks. \n", rank, n_ranks);
   #endif
+
   /**
      Namelist and parameters
    */
@@ -199,9 +200,10 @@ int main(int argc,char* argv[])
     printf("Stochastic forcing. \n");
   #endif
 
+  // First inversion
   invert_pv(q,psi);
 
-  // Prepare output variables
+  // Initialize output
   char file_tmp[90];
   sprintf (file_tmp,"%s%s", dir_out, "vars.nc");
 
@@ -228,6 +230,7 @@ int main(int argc,char* argv[])
 
     #ifdef _MPI
         if (rank == 0){
+          // Only first rank prints
           fprintf(stdout, "i = %d, t = %e dt = %e \n",it, t, dt);
         }
     #else 
@@ -247,6 +250,7 @@ int main(int argc,char* argv[])
           write_nc();
         }
       #else 
+        printf("Write output, t = %e \n",t);
         write_nc();
       #endif
 
@@ -269,18 +273,18 @@ int main(int argc,char* argv[])
   clean_fft();
   clean_timestep();
   clean_eigmode();
+  
   free(psi);
   free(q);
   free(X);
   free(Y);
   
-  free(psi_out);
-  free(q_out);
-
   if (list_nc) list_free(list_nc);
   if (params) list_free(params);
   
-  #ifdef _MPI
+  #ifdef _MPI    
+    free(psi_out);
+    free(q_out);
     MPI_Finalize();
   #endif
 }

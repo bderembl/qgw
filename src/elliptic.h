@@ -3,9 +3,7 @@
     del^2 psi = q
 
     TODO:
-      - MPI routines
       - solve one direction with tridiagonal solver (Thomas algorithm)
-      - Multi layer
  */
 
 
@@ -23,12 +21,13 @@ void init_elliptic(){
 
   #ifdef _MPI
 
-    NY = Nym1;
+    NY = Nym1; // Size of Fourier transforms
     NX = Nxm1;
 
     /* get local data size and allocate */
     alloc_local = fftw_mpi_local_size_2d(NY, NX, MPI_COMM_WORLD,
                                          &local_n0, &local_0_start);
+    
     in1 = fftw_alloc_real(alloc_local);
     in2 = fftw_alloc_real(alloc_local);
     out1 = fftw_alloc_real(alloc_local);
@@ -41,20 +40,18 @@ void init_elliptic(){
                                 FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
 
     /* From now on Ny and all related variables will be the local values, and the global 
-    values will be stored in Nt.*/
+    values will be stored in Nyt.*/
 
     Nyt = Ny;
     Nytp1 = Nyp1;
     Nytm1 = Nym1;
-    Ny_start = local_0_start + 1;
+    Ny_start = local_0_start + 1; // member the fourier grid starts at the index 1 of the real space grid
     Ny_startm1 = local_0_start;
     Nym1 = local_n0;
     Nyp1 = local_n0+2;
     Ny = local_n0+1;
     
   #else
-    
-    fprintf(stdout,"Prepare fft..");
 
     in1  = calloc( Nxm1*Nym1, sizeof( double ) );
     in2  = calloc( Nxm1*Nym1, sizeof( double ) );
@@ -63,8 +60,6 @@ void init_elliptic(){
 
     transfo_direct  = fftw_plan_r2r_2d(Nym1,Nxm1, in1, out1, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
     transfo_inverse = fftw_plan_r2r_2d(Nym1,Nxm1, in2, out2, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
-
-    fprintf(stdout,"..done\n");
 
   #endif
 
@@ -111,7 +106,7 @@ void invert_pv(double *q, double *psi) {
   // inverse transform
   fftw_execute(transfo_inverse);
 
-  // Scaling (different for MPI as we need to take the global Ny)
+  // Normalisation (different for MPI as we need to take the global Nyt)
   #ifdef _MPI
     for(int j = 1; j<Ny; j++){
       for(int i = 1;i <Nx; i++){
@@ -152,7 +147,7 @@ void clean_fft(){
   fftw_destroy_plan(transfo_inverse);
 
   #ifdef _MPI
-    void fftw_mpi_cleanup(void);
+    fftw_mpi_cleanup();
   #else
     fftw_cleanup();
   #endif

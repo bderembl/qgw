@@ -2,8 +2,6 @@
 /**
    Domain related routines
    
-   TODO
-     -MPI routines
 */
 
 // grid indices
@@ -33,7 +31,7 @@ void init_domain() {
   #endif
 
 
-  // Coordinates in sinus space
+  // Coordinates in spectral space
   K = calloc( Nxp1, sizeof( double ) );
   L = calloc( Nyp1, sizeof( double ) );
 
@@ -162,8 +160,9 @@ void adjust_bc(double *q, double *psi) {
           q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i-1,j,k)] - psi_bc);
         }
 
-        if (rank%2 == 1){ //odd ranks first receive, then send
         // South
+        if (rank%2 == 1){ //odd ranks first receive, then send
+
         //send/receive psi
         MPI_Status  status;
         MPI_Recv(&psi[idx(0,0,k)], Nxp1, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status);
@@ -173,8 +172,8 @@ void adjust_bc(double *q, double *psi) {
         MPI_Status  status2;
         MPI_Recv(&q[idx(0,0,k)], Nxp1, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD, &status2);
         MPI_Send(&q[idx(0,1,k)], Nxp1, MPI_DOUBLE, rank-1, 0, MPI_COMM_WORLD);
-        } else {
-          // South
+        } else { // even ranks first send, then receive
+
         //send/receive psi
         MPI_Status  status;
         

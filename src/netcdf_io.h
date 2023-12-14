@@ -270,25 +270,25 @@ void write_nc() {
 
 void gather_info(){
    // First rank gathers information about the other processes, to be able to properly handle 
-   // their data.
+   // their data upon communication.
 
-   size_gather = malloc( n_ranks*sizeof( int ) );
-   start_gather = malloc( n_ranks*sizeof( int ) );
-   rows_gather = malloc( n_ranks*sizeof( int ) );
+   size_gather = malloc( n_ranks*sizeof( int ) ); // Number of data to be sent from each rank
+   start_gather = malloc( n_ranks*sizeof( int ) ); // Row at which the domain of each rank starts
+   rows_gather = malloc( n_ranks*sizeof( int ) ); // Number of rows to be sent from each rank
    
-   if (rank == 0 && rank == n_ranks-1){
+   if (rank == 0 && rank == n_ranks-1){ // Only one rank
       size_gather_local = Nyp1*Nxp1*nl;
       Ny_send_start = Ny_start - 1;
       Ny_send_rows = Nyp1;
-   } else if( rank == 0 ){
+   } else if( rank == 0 ){ // First rank has one row more (southern boundary)
       size_gather_local = Ny*Nxp1*nl;
       Ny_send_start = Ny_start - 1;
       Ny_send_rows = Ny;
-   } else if ( rank == n_ranks - 1 ) {
+   } else if ( rank == n_ranks - 1 ) { // Last rank has one row more (northern boundary)
       size_gather_local = Ny*Nxp1*nl;
       Ny_send_start = Ny_start;
       Ny_send_rows = Ny;
-   } else {
+   } else { 
       size_gather_local = Nym1*Nxp1*nl;
       Ny_send_start = Ny_start;
       Ny_send_rows = Nym1;
@@ -298,22 +298,15 @@ void gather_info(){
    MPI_Gather(&Ny_send_start, 1, MPI_INT, start_gather, 1, MPI_INT, 0, MPI_COMM_WORLD);
    MPI_Gather(&Ny_send_rows, 1, MPI_INT, rows_gather, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-   if (rank == 0){
-      fprintf(stdout, "I'm rank %d, I now know that I have to gather ", rank);
-      for (int i = 0;i <n_ranks; i++){
-         fprintf(stdout, "%d data points from rank %d, ", size_gather[i], i);
-      }
-      fprintf(stdout, "and I believe that's it. \n");
-   }
-
 }
 
 void gather_output(){
    // function to gather information from other ranks before writing output
+   // Rank 0 will gather information and write the nc_file
 
-   if (rank ==0){
+   if (rank ==0){ 
       // Copy own data chunk into psi and q arrays
-      if (n_ranks == 1){
+      if (n_ranks == 1){ // No reception if rank 0 is the only ranks
          for (int k = 0; k < nl; k++){
             for (int j=0; j < Nyp1; j++){
                for (int i=0; i < Nxp1; i++){
@@ -328,7 +321,7 @@ void gather_output(){
                }
             }
          }
-      } else { // Else rank 0 also has to receive if it is not the only rank
+      } else { // Else rank 0 also has to receive data from all other ranks
          for (int k = 0; k < nl; k++){
             for (int j=0; j < Ny; j++){
                for (int i=0; i < Nxp1; i++){
@@ -351,14 +344,14 @@ void gather_output(){
          // receive remaining chunks and copy into arrays
          for (int ii = 1;ii <n_ranks; ii++){
                      
+            // We reallocate reception arrays at every communication, as the number of rows and hence data points 
+            // might be different depending on the rank that we are receiving from.
             double *recv_psi;
             double *recv_q;
                
             // receive psi arrays
             MPI_Status  status1;
-
             recv_psi = calloc( size_gather[ii], sizeof( double ) );
-
             MPI_Recv(recv_psi, size_gather[ii], MPI_DOUBLE, ii, 1, MPI_COMM_WORLD, &status1);
             
             // Copy psi into output array
@@ -377,12 +370,10 @@ void gather_output(){
 
             // receive q arrays
             recv_q = calloc( size_gather[ii], sizeof( double ) );
-
             MPI_Status  status2;
             MPI_Recv(recv_q, size_gather[ii], MPI_DOUBLE, ii, 1, MPI_COMM_WORLD, &status2);
             
             // Copy q into output array
-            
             for (int k = 0; k < nl; k++){
                for (int j= j_start; j < j_end; j++){
                   for (int i=0; i < Nxp1; i++){
@@ -396,13 +387,12 @@ void gather_output(){
             free(recv_psi);
             free(recv_q);
          }  
-         
       }
-   } else {
+   } else { // send arrays from other ranks
       
       double *send_psi;
       double *send_q;
-      // send arrays from other ranks
+      
       send_psi = calloc( size_gather_local, sizeof( double ) );
 
       // copy psi arrays into sending allocation

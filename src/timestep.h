@@ -5,8 +5,6 @@
    Implemented options are 
      - Adams Bashforth
 
-   TODO:
-     - Variable time step
  */
 
 double *f0_ab;
@@ -16,9 +14,6 @@ double *f2_ab;
 double dt0, dt1;
 
 static  double TEPS = 1e-9;
-
-/*Calculate dt_max*/
-
 
 void check_timestep(){
   /** Compares the timestep to viscous and beta numerical instabilities, and
@@ -62,11 +57,6 @@ void init_timestep(){
   dt1 = dt;
 }
 
-/**
-   Compute maximum possible time step dt based on CFL criterion and next output.
- */
-
-
 double adjust_timestep(double *psi) {
 
   // Adjust dt according to CFL
@@ -88,7 +78,7 @@ double adjust_timestep(double *psi) {
   }
 
   #ifdef _MPI
-    MPI_Allreduce(&dt_max, &dt_max, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+    MPI_Allreduce(&dt_max, &dt_max, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD); // Compare with dt_max from other ranks
   #endif
 
   if (dt < dt_max) dt = 2.*dt;
