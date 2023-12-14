@@ -111,12 +111,20 @@ void invert_pv(double *q, double *psi) {
   // inverse transform
   fftw_execute(transfo_inverse);
 
-  // Scaling
+  // Scaling (different for MPI as we need to take the global Ny)
+  #ifdef _MPI
+    for(int j = 1; j<Ny; j++){
+      for(int i = 1;i <Nx; i++){
+        out2[idx_fft(i,j)] = out2[idx_fft(i,j)]/(4*(Nxm1 + 1)*(Nytm1 + 1));
+      }
+    }
+  #else
     for(int j = 1; j<Ny; j++){
       for(int i = 1;i <Nx; i++){
         out2[idx_fft(i,j)] = out2[idx_fft(i,j)]/(4*(Nxm1 + 1)*(Nym1 + 1));
       }
     }
+  #endif
 
     for(int j = 1;j<Ny; j++){
       for(int i = 1;i <Nx; i++){
@@ -129,7 +137,7 @@ void invert_pv(double *q, double *psi) {
   } // mode loop
 
   // adjust boundary conditions
-  // adjust_bc(q, psi);
+  adjust_bc(q, psi);
 
 }
 

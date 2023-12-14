@@ -87,7 +87,9 @@ double adjust_timestep(double *psi) {
     }
   }
 
-  //TODO  MPI reduce here for dt_max
+  #ifdef _MPI
+    MPI_Allreduce(&dt_max, &dt_max, 1, MPI_DOUBLE, MPI_MIN, MPI_COMM_WORLD);
+  #endif
 
   if (dt < dt_max) dt = 2.*dt;
   if (dt > DT_max) dt = DT_max;
@@ -133,8 +135,8 @@ void timestep(double * q){
   double c2 = sq(dt)*(dt/3 + dt0/2)/(dt1*(dt0 + dt1));
 
   for(int k = 0; k<nl; k++){
-    for (int j = 0; j < Ny; j++){
-      for (int i = 0; i < Nx; i++){
+    for (int j = 1; j < Ny; j++){
+      for (int i = 1; i < Nx; i++){
         q[idx(i,j,k)] = q[idx(i,j,k)]  + c0*f0_ab[idx(i,j,k)] + c1*f1_ab[idx(i,j,k)] + c2*f2_ab[idx(i,j,k)];
       }
     }
@@ -142,8 +144,8 @@ void timestep(double * q){
 	
   #ifdef _STOCHASTIC
     calc_forc();
-    for (int j = 0; j < Ny; j++){
-      for (int i = 0; i < Nx; i++){
+    for (int j = 1; j < Ny; j++){
+      for (int i = 1; i < Nx; i++){
         q[idx(i,j)] += forc[idx(i,j)]*sqrt(dt);
       }
   }

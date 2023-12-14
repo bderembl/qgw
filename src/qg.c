@@ -91,7 +91,6 @@ int Nxp1, Nyp1;
 
 // Output variable
 int NYp1;
-
 int nl = 1;
 double dh[nl_max] = {1.};
 double dhc[nl_max] = {1.};
@@ -224,15 +223,16 @@ int main(int argc,char* argv[])
   /**
      Main Loop
   */
-  fprintf(stdout, "rank %d arrived at barrier\n", rank);
-  MPI_Barrier(MPI_COMM_WORLD);
-  fprintf(stdout, "rank %d passed barrier\n", rank);
-
-  sleep(2);
 
   while(t < tend){
 
-    fprintf(stdout, "i = %d, t = %e dt = %e \n",it, t, dt);
+    #ifdef _MPI
+        if (rank == 0){
+          fprintf(stdout, "i = %d, t = %e dt = %e \n",it, t, dt);
+        }
+    #else 
+      fprintf(stdout, "i = %d, t = %e dt = %e \n",it, t, dt);
+    #endif
 
     if (fabs (t - t_out) < TEPS*dt){
       

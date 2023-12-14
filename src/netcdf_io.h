@@ -359,7 +359,7 @@ void gather_output(){
 
             recv_psi = calloc( size_gather[ii], sizeof( double ) );
 
-            MPI_Recv(recv_psi, size_gather[ii], MPI_DOUBLE, ii, 0, MPI_COMM_WORLD, &status1);
+            MPI_Recv(recv_psi, size_gather[ii], MPI_DOUBLE, ii, 1, MPI_COMM_WORLD, &status1);
             
             // Copy psi into output array
             int j_start = start_gather[ii];
@@ -415,7 +415,7 @@ void gather_output(){
          }
       }
 
-      MPI_Send(send_psi, size_gather_local, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+      MPI_Send(send_psi, size_gather_local, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD);
 
       send_q = calloc( size_gather_local, sizeof( double ) );
 
