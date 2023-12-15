@@ -29,7 +29,7 @@
 #ifdef _MPI
   #include <mpi.h>
   #include <fftw3-mpi.h>
-  #include "unistd.h" //just for sleep function
+  #include <unistd.h> //just for sleep function
 #endif
 
 #define sq(x) ((x)*(x)) // alias for square function
@@ -70,29 +70,27 @@ int Nx, Ny;
 int Nxm1, Nym1;
 int Nxp1, Nyp1;
 
-#ifdef _MPI 
-  //local or global MPI indices
-  int Nyt; 
-  int Nytm1;
-  int Nytp1;
-  int Ny_start; 
-  int Ny_startm1;
+//local or global MPI indices
+int Nyt; 
+int Nytm1;
+int Nytp1;
+int Ny_start; 
+int Ny_startm1;
 
-  int rank;
-  int n_ranks;
-  
-  // MPI FFTW
-  ptrdiff_t NY, NX;
-  ptrdiff_t alloc_local, local_n0, local_0_start;
+int rank;
+int n_ranks;
 
-  // MPI communication variables
-  int *size_gather;
-  int *start_gather;
-  int *rows_gather;
-  int size_gather_local;
-  int Ny_send_start;
-  int Ny_send_rows;
-#endif
+// MPI FFTW
+ptrdiff_t NY, NX;
+ptrdiff_t alloc_local, local_n0, local_0_start;
+
+// MPI communication variables
+int *size_gather;
+int *start_gather;
+int *rows_gather;
+int size_gather_local;
+int Ny_send_start;
+int Ny_send_rows;
 
 // Physical Parameters
 int nl = 1;
@@ -130,9 +128,8 @@ int main(int argc,char* argv[])
 {
 
   // sleep loop to attach debugger
-  int ii=0;
-
-  //while (0 == ii) sleep(5);
+  // int ii=0;
+  // while (0 == ii) sleep(5);
 
   #ifdef _MPI
     // Initiate MPI

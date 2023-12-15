@@ -268,6 +268,8 @@ void write_nc() {
 //   printf("*** SUCCESS writing example file %s -- %d!\n", file_nc, nc_rec);
 }
 
+#ifdef _MPI
+
 void gather_info(){
    // First rank gathers information about the other processes, to be able to properly handle 
    // their data upon communication.
@@ -297,13 +299,13 @@ void gather_info(){
    MPI_Gather(&size_gather_local, 1, MPI_INT, size_gather, 1, MPI_INT, 0, MPI_COMM_WORLD);
    MPI_Gather(&Ny_send_start, 1, MPI_INT, start_gather, 1, MPI_INT, 0, MPI_COMM_WORLD);
    MPI_Gather(&Ny_send_rows, 1, MPI_INT, rows_gather, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
+   
 }
 
 void gather_output(){
    // function to gather information from other ranks before writing output
    // Rank 0 will gather information and write the nc_file
-
+   
    if (rank ==0){ 
       // Copy own data chunk into psi and q arrays
       if (n_ranks == 1){ // No reception if rank 0 is the only ranks
@@ -427,3 +429,5 @@ void gather_output(){
 
 
 } 
+
+#endif

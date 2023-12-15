@@ -1,8 +1,8 @@
 #!sh
 # input parameter file
 # double gyre 
-Nx  = 256
-Ny  = 256
+Nx  = 1024
+Ny  = 1024
 nl = 3
 Lx = 4000e3
 f0 = 9.4e-05
@@ -11,14 +11,14 @@ tau0 = 5e-4
 forc_mode = 2.0
 
 # bc_fac = 0: free slip, 1: no slip, [0..1]: partial slip
-bc_fac = 0.
+bc_fac = 1.
 # dh must be an array
 dh = [350., 750., 2900.]
-N2 = [4.54545455e-05, 6.84931507e-06]
+N2 = [5.05e-06, 7.61e-07]
 
-nu = 1000
+nu = 35
 hEkb = 0
 
 # timestepping
-tend  = 150000000
-dt_out = 93200
+tend  =  1576800000
+dt_out = 1500000
