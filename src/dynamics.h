@@ -2,7 +2,6 @@
    Implementation of the RHS of the QG equation
 
    TODO:
-     - Multi layer
      - Bottom drag
 */
 

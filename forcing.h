@@ -160,11 +160,7 @@ void  init_stoch_forc(){
     }
   }
 	
-  printf("Prepare forcing fft.. \n");
-	
   transfo_inverse_forc = fftw_plan_dft_c2r_2d(Nx, Ny, in, out, FFTW_EXHAUSTIVE);
-	
-  fprintf(stdout,"..done\n");
 }
 
 void calc_forc() {
