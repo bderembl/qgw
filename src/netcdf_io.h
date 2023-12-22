@@ -149,7 +149,15 @@ void create_nc(char* file_out)
    /* Close the file. */
    if ((nc_err = nc_close(ncid)))
       ERR(nc_err);
-   fprintf(stdout,"*** SUCCESS creating example file %s!\n", file_nc);
+
+   #ifdef _MPI
+      if (rank == 0){
+         fprintf(stdout,"*** SUCCESS creating example file %s!\n", file_nc);
+      }
+   #else
+      fprintf(stdout,"*** SUCCESS creating example file %s!\n", file_nc);
+   #endif
+
 //  } // end master
 
 }

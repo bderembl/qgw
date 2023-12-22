@@ -39,8 +39,10 @@ void check_timestep(){
   if (DT_max != 0 && dt > DT_max) {
     dt = DT_max; 
   }
+  if (print) {
   printf("Maximum time step: DT_MAX = %g \n", DT_max);
   printf("Initial time step: dt = %g \n", dt);
+  }
 	
 }
 

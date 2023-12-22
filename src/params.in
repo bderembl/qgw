@@ -1,8 +1,8 @@
 #!sh
 # input parameter file
 # double gyre 
-Nx  = 1024
-Ny  = 1024
+Nx  = 256
+Ny  = 256
 nl = 3
 Lx = 4000e3
 f0 = 9.4e-05
@@ -16,9 +16,9 @@ bc_fac = 1.
 dh = [350., 750., 2900.]
 N2 = [5.05e-06, 7.61e-07]
 
-nu = 35
+nu = 500
 hEkb = 0
 
 # timestepping
 tend  =  1576800000
-dt_out = 1500000
+dt_out = 50000

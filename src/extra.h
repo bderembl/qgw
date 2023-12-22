@@ -108,7 +108,7 @@ void str2array(char *tmps2, double *array){
   p = strtok(tmps2,"[,]");
   while (p != NULL){
     array[n] = atof(p);
-    fprintf (stderr, "array[%d] = %g \n", n, array[n]);
+    if (print){fprintf (stderr, "array[%d] = %g \n", n, array[n]);}
     p = strtok(NULL, ",");
     n += 1;
   }
@@ -131,12 +131,14 @@ void read_params(List *params, char *path2file)
           //check for type and assign value
           if (strcmp(params[i].type, "int") == 0) {
             *( (int*) params[i].data) = atoi(tmps2);
-            fprintf (stderr, "scan param %s: %d\n", params[i].name, *( (int*) params[i].data));}
+            if (print){fprintf (stderr, "scan param %s: %d\n", params[i].name, *( (int*) params[i].data));}
+            }
           else if (strcmp(params[i].type, "double") == 0){
             *( (double*) params[i].data) = atof(tmps2);
-            fprintf (stderr, "scan param %s: %e\n", params[i].name, *( (double*) params[i].data));}
+            if (print){fprintf (stderr, "scan param %s: %e\n", params[i].name, *( (double*) params[i].data));}
+            }
           else if (strcmp(params[i].type, "array") == 0){
-            fprintf (stderr, "scan param %s:\n", params[i].name);
+            if (print){fprintf (stderr, "scan param %s:\n", params[i].name);}
             str2array(tmps2, (double*) params[i].data);
           }
         }
@@ -165,7 +167,14 @@ void create_outdir()
   for (int i=1; i<10000; i++) {
     sprintf(dir_out, "outdir_%04d/", i);
     if (mkdir(dir_out, 0777) == 0) {
-      fprintf(stdout,"Writing output in %s\n",dir_out);
+      #ifdef _MPI
+        if (rank == 0){
+          fprintf(stdout,"Writing output in %s\n",dir_out);
+        }
+      #else
+        fprintf(stdout,"Writing output in %s\n",dir_out);
+      #endif
+      
       break;
     }
   }
@@ -178,7 +187,13 @@ void create_outdir()
 
 void backup_config(char *path2file)
 {
-  fprintf(stdout, "Backup config\n");
+  #ifdef _MPI
+    if (rank == 0){
+      fprintf(stdout, "Backup config\n");
+    }
+  #else
+    fprintf(stdout, "Backup config\n");
+  #endif
   //  if (pid() == 0) {
   char ch;
   char name[90];

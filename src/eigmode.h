@@ -84,179 +84,177 @@ int compare_i (const void* a, const void* b) {
 
 /**
  Main program */
-void compute_eigmode ()
-{
-  
-  fprintf(stdout,"Compute vertical modes .. ");
+void compute_eigmode () {
+  if (print) {fprintf(stdout,"Compute vertical modes .. ");}
+
   double htotal = 0;
   for (int k = 0; k < nl ; k++)
     htotal += dh[k];
     
+  
+  // initialize matrix
+  double * Gamma_mat;
+  Gamma_mat = malloc (nl*nl*sizeof(double));
 
-  int print = 1;
+  for (int m = 0; m < nl ; m++) {
+    for (int k = 0; k < nl ; k++) {
+      Gamma_mat[nl*k + m] = 0.;
+    }
+  }
     
-    // initialize matrix
-    double * Gamma_mat;
-    Gamma_mat = malloc (nl*nl*sizeof(double));
+  if (nl > 1){
 
-    for (int m = 0; m < nl ; m++) {
-      for (int k = 0; k < nl ; k++) {
-        Gamma_mat[nl*k + m] = 0.;
-      }
+    int l = 0;
+    Gamma_mat[nl*l + l+1] = -sq(f0)/N2[l]/( dhc[l]*dh[l]);
+    Gamma_mat[nl*l + l ] = - Gamma_mat[nl*l + l+1];
+
+    for (int l = 1; l < nl-1 ; l++) {
+      Gamma_mat[nl*l+l-1] = -sq(f0)/N2[l-1]/( dhc[l-1]*dh[l]);
+      Gamma_mat[nl*l+l+1] = -sq(f0)/N2[l]/( dhc[l]*dh[l]);
+      Gamma_mat[nl*l+ l ] = - Gamma_mat[nl*l+l-1] - Gamma_mat[nl*l+l+1];
     }
-     
-    if (nl > 1){
+    l = nl-1;
+    Gamma_mat[nl*l + l-1] = -sq(f0)/N2[l-1]/( dhc[l-1]*dh[l]);
+    Gamma_mat[nl*l + l ] = - Gamma_mat[nl*l + l-1];
+  }
+  else{
+    Gamma_mat[0] = 1.;
+  }
 
-      int l = 0;
-      Gamma_mat[nl*l + l+1] = -sq(f0)/N2[l]/( dhc[l]*dh[l]);
-      Gamma_mat[nl*l + l ] = - Gamma_mat[nl*l + l+1];
+  if (print){
+    print_matrix_rowmajor( "Gamma matrix", nl,nl, Gamma_mat, nl);
+  }
 
-      for (int l = 1; l < nl-1 ; l++) {
-        Gamma_mat[nl*l+l-1] = -sq(f0)/N2[l-1]/( dhc[l-1]*dh[l]);
-        Gamma_mat[nl*l+l+1] = -sq(f0)/N2[l]/( dhc[l]*dh[l]);
-        Gamma_mat[nl*l+ l ] = - Gamma_mat[nl*l+l-1] - Gamma_mat[nl*l+l+1];
-      }
-      l = nl-1;
-      Gamma_mat[nl*l + l-1] = -sq(f0)/N2[l-1]/( dhc[l-1]*dh[l]);
-      Gamma_mat[nl*l + l ] = - Gamma_mat[nl*l + l-1];
-    }
-    else{
-      Gamma_mat[0] = 1.;
-    }
-
-    if (print){
-      print_matrix_rowmajor( "Gamma matrix", nl,nl, Gamma_mat, nl);
-    }
-
-    /**
-       Declare variables for lapack
-     */
-    double * wr;
-    double * wi;
-    double * vl;
-    double * vr;
-    double * tmp;
-    vr = malloc (nl*nl*sizeof(double));
-    vl = malloc (nl*nl*sizeof(double));
-    tmp = malloc (nl*nl*sizeof(double));
-    
-    wr = malloc (nl*sizeof(double));
-    wi = malloc (nl*sizeof(double));
-
-    struct array_i* wr2 = (struct array_i*) malloc(nl * sizeof(struct array_i));
-
-   int info = LAPACKE_dgeev( LAPACK_ROW_MAJOR, 'V', 'V', nl, Gamma_mat, nl, wr, wi,
-                              vl, nl, vr, nl );
-
-    if (info < 0) {
-      printf("issue with lapack in eigmode.h\n");
-      exit(0);
-    }
-
-    // sort
-    for (int l = 0; l < nl ; l++) {
-      wr2[l].data = wr[l]; 
-      wr2[l].index = l;
-    }
-
-    qsort(wr2, nl, sizeof(struct array_i), &compare_i);
-
-    for (int l = 0; l < nl ; l++) {
-      wr[l] = wr2[l].data;
-    }   
-
-    for (int m = 0; m < nl ; m++) {
-      for (int k = 0; k < nl ; k++) {
-        tmp[k*nl+m] = vr[k*nl+m];
-      }
-    }
-    for (int m = 0; m < nl ; m++) {
-      for (int k = 0; k < nl ; k++) {
-        vr[k*nl+m] = tmp[k*nl+wr2[m].index];
-      }
-    }
-
-    for (int m = 0; m < nl ; m++) {
-      for (int k = 0; k < nl ; k++) {
-        tmp[k*nl+m] = vl[k*nl+m];
-      }
-    }
-    for (int m = 0; m < nl ; m++) {
-      for (int k = 0; k < nl ; k++) {
-        vl[k*nl+m] = tmp[k*nl+wr2[m].index];
-      }
-    }
-
-    if (print) {
-    print_matrix_rowmajor( "Right eigenvectors", nl, nl, vr, nl );
-    print_matrix_rowmajor( "Left eigenvectors", nl, nl, vl, nl );
-    }
-
-    /**
-       Apply the normalisation of Flierl (1978) to the oceanic
-       right eigenvectors, and ensure they are +ve at the surface
-       ----------------------------------------------------------
-       Normalisation is equation (2.5) of "Models of Vertical
-       Structure and the Calibration of Two-layer Models" by Glenn
-       R. Flierl, Dynamics of Atmospheres and Oceans vol. 2 pp
-       341-381 (1978) Surface sign convention follows the Rossby
-       wave papers of P.D. Killworth & J.R. Blundell in J. Physical
-       Oceanography.  This is only immediately relevant for the
-       ocean case.
+  /**
+     Declare variables for lapack
     */
+  double * wr;
+  double * wi;
+  double * vl;
+  double * vr;
+  double * tmp;
+  vr = malloc (nl*nl*sizeof(double));
+  vl = malloc (nl*nl*sizeof(double));
+  tmp = malloc (nl*nl*sizeof(double));
+  
+  wr = malloc (nl*sizeof(double));
+  wi = malloc (nl*sizeof(double));
 
-    for (int m = 0; m < nl ; m++) {
-      double dotp = 0.;
-      for (int k = 0; k < nl ; k++) {
-        dotp += dh[k]*vr[k*nl+m]*vr[k*nl+m];
-      }
-      double flfac = sign(vr[m])*sqrt(htotal/dotp);
-      for (int k = 0; k < nl ; k++) {
-        vr[k*nl+m] = flfac*vr[k*nl+m];
-      }
+  struct array_i* wr2 = (struct array_i*) malloc(nl * sizeof(struct array_i));
+
+  int info = LAPACKE_dgeev( LAPACK_ROW_MAJOR, 'V', 'V', nl, Gamma_mat, nl, wr, wi,
+                            vl, nl, vr, nl );
+
+  if (info < 0) {
+    printf("issue with lapack in eigmode.h\n");
+    exit(0);
+  }
+
+  // sort
+  for (int l = 0; l < nl ; l++) {
+    wr2[l].data = wr[l]; 
+    wr2[l].index = l;
+  }
+
+  qsort(wr2, nl, sizeof(struct array_i), &compare_i);
+
+  for (int l = 0; l < nl ; l++) {
+    wr[l] = wr2[l].data;
+  }   
+
+  for (int m = 0; m < nl ; m++) {
+    for (int k = 0; k < nl ; k++) {
+      tmp[k*nl+m] = vr[k*nl+m];
     }
-    for (int m = 0; m < nl ; m++) {
-      double dotp = 0.;
-      for (int k = 0; k < nl ; k++) {
-        dotp += vr[k*nl+m]*vl[k*nl+m];
-      }
-      for (int k = 0; k < nl ; k++) {
-        vl[k*nl+m] = vl[k*nl+m]/dotp;
-      }
+  }
+  for (int m = 0; m < nl ; m++) {
+    for (int k = 0; k < nl ; k++) {
+      vr[k*nl+m] = tmp[k*nl+wr2[m].index];
     }
+  }
 
-    /**
-       Store matrices and deformation radius 
-    */
-
-    for (int m = 0; m < nl ; m++) {
-      for (int k = 0; k < nl ; k++) {
-        cl2m[k*nl+m] = vl[m*nl+k];
-        cm2l[k*nl+m] = vr[k*nl+m]; // transpose matrix
-
-        /* l2m[] = (k == m ? 1.0 : 0.); */
-        /* m2l[] = (k == m ? 1.0 : 0.); */
-      }
+  for (int m = 0; m < nl ; m++) {
+    for (int k = 0; k < nl ; k++) {
+      tmp[k*nl+m] = vl[k*nl+m];
     }
-
-    // store 1/Rd2 
-    for (int k = 1; k < nl ; k++) {
-      iRd2[k] = wr[k];
+  }
+  for (int m = 0; m < nl ; m++) {
+    for (int k = 0; k < nl ; k++) {
+      vl[k*nl+m] = tmp[k*nl+wr2[m].index];
     }
-    // set BT mode to zero
-    iRd2[0] = 0.;
+  }
+  /*
+  if (print) {
+  print_matrix_rowmajor( "Right eigenvectors", nl, nl, vr, nl );
+  print_matrix_rowmajor( "Left eigenvectors", nl, nl, vl, nl );
+  }
+  */
+  /**
+     Apply the normalisation of Flierl (1978) to the oceanic
+      right eigenvectors, and ensure they are +ve at the surface
+      ----------------------------------------------------------
+      Normalisation is equation (2.5) of "Models of Vertical
+      Structure and the Calibration of Two-layer Models" by Glenn
+      R. Flierl, Dynamics of Atmospheres and Oceans vol. 2 pp
+      341-381 (1978) Surface sign convention follows the Rossby
+      wave papers of P.D. Killworth & J.R. Blundell in J. Physical
+      Oceanography.  This is only immediately relevant for the
+      ocean case.
+  */
 
-    if (print) {
-
-      print_matrix_rowmajor( "Right eigenvectors (renorm)", nl, nl, cm2l, nl );
-      print_matrix_rowmajor( "Left eigenvectors (renorm)", nl, nl, cl2m, nl );
-      printf("\n");
-      printf("Deformation radii: \n");
-      for (int k = 0; k < nl ; k++) {
-        printf("iRd2: %g , def radius: %g\n", iRd2[k], iRd2[k] > 0 ? sqrt(1/iRd2[k]) : 0);
-      }
+  for (int m = 0; m < nl ; m++) {
+    double dotp = 0.;
+    for (int k = 0; k < nl ; k++) {
+      dotp += dh[k]*vr[k*nl+m]*vr[k*nl+m];
     }
-    
+    double flfac = sign(vr[m])*sqrt(htotal/dotp);
+    for (int k = 0; k < nl ; k++) {
+      vr[k*nl+m] = flfac*vr[k*nl+m];
+    }
+  }
+  for (int m = 0; m < nl ; m++) {
+    double dotp = 0.;
+    for (int k = 0; k < nl ; k++) {
+      dotp += vr[k*nl+m]*vl[k*nl+m];
+    }
+    for (int k = 0; k < nl ; k++) {
+      vl[k*nl+m] = vl[k*nl+m]/dotp;
+    }
+  }
+
+  /**
+     Store matrices and deformation radius 
+  */
+
+  for (int m = 0; m < nl ; m++) {
+    for (int k = 0; k < nl ; k++) {
+      cl2m[k*nl+m] = vl[m*nl+k];
+      cm2l[k*nl+m] = vr[k*nl+m]; // transpose matrix
+
+      /* l2m[] = (k == m ? 1.0 : 0.); */
+      /* m2l[] = (k == m ? 1.0 : 0.); */
+    }
+  }
+
+  // store 1/Rd2 
+  for (int k = 1; k < nl ; k++) {
+    iRd2[k] = wr[k];
+  }
+  // set BT mode to zero
+  iRd2[0] = 0.;
+
+  /*
+  if (print) {
+
+    print_matrix_rowmajor( "Right eigenvectors (renorm)", nl, nl, cm2l, nl );
+    print_matrix_rowmajor( "Left eigenvectors (renorm)", nl, nl, cl2m, nl );
+    printf("\n");
+    printf("Deformation radii: \n");
+    for (int k = 0; k < nl ; k++) {
+      printf("iRd2: %g , def radius: %g\n", iRd2[k], iRd2[k] > 0 ? sqrt(1/iRd2[k]) : 0);
+    }
+  }
+  */
 
   free(Gamma_mat);
   free(wr);
@@ -266,7 +264,7 @@ void compute_eigmode ()
   free(vr);
   free(tmp);
 
-
-  fprintf(stdout,"End eigenmode computation\n ");
+  if (print) {fprintf(stdout,"End eigenmode computation\n ");}
+  
 }
 

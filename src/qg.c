@@ -4,10 +4,12 @@
    Compile with 
      gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -llapacke -lnetcdf 
    If run with MPI compile with 
-    mpicc -O3 qg.c -o qg.e -lfftw3_mpi -lfftw3 -lm -llapacke -lnetcdf -D_MPI
+    mpicc -O3 qg.c -o qg.e -lfftw3_mpi -lfftw3 -lm -llapacke -lnetcdf -D_MPI (-D_PRINT)
 
    Compilation flags
      -D_STOCHASTIC : add a stochastic forcing
+     -D_MPI : needed for mpi compilation
+     -D_PRINT : stdout printing is disabled in MPI, but can be reenabled by including this flag (for debugging)
     
    Run with
      ./qg.e
@@ -24,7 +26,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <fftw3.h>
-#include "extra.h"
 
 #ifdef _MPI
   #include <mpi.h>
@@ -63,8 +64,6 @@ double *out2;
 
 fftw_plan transfo_direct, transfo_inverse;
 
-List *params; 
-
 // space and time constants
 int Nx, Ny;
 int Nxm1, Nym1;
@@ -79,6 +78,9 @@ int Ny_startm1;
 
 int rank;
 int n_ranks;
+
+// variable for printing out intermediate initialisation info
+int print = 1;
 
 // MPI FFTW
 ptrdiff_t NY, NX;
@@ -117,6 +119,12 @@ double N2[nl_max] = {1.};
 #define forcing_q(t) (-tau0/dh[0]*forc_mode*pi/Ly*sin(forc_mode*pi*Y[j]/Ly))
 
 // Local header files
+
+#include "extra.h"
+
+// declaration of list type needs to occur after extra.h import
+List *params; 
+
 #include "domain.h"
 #include "elliptic.h"
 #include "forcing.h"
@@ -141,8 +149,15 @@ int main(int argc,char* argv[])
 
     // find out total number of ranks
     MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
+
+    // disable stdout printing
+    print = 0;
+
   #endif
 
+  #ifdef _PRINT
+    print = 1;
+  #endif
   /**
      Namelist and parameters
    */
@@ -170,6 +185,7 @@ int main(int argc,char* argv[])
   if (argc == 2)
     strcpy(file_param,argv[1]); // default: params.in
 
+  // TODO: Only rank 0 reads, then broadcasts params
   read_params(params, file_param);
 
   // Only rank 0 should create outdir when run in MPI
@@ -226,10 +242,10 @@ int main(int argc,char* argv[])
   while(t < tend){
 
     #ifdef _MPI
-        if (rank == 0){
-          // Only first rank prints
-          fprintf(stdout, "i = %d, t = %e dt = %e \n",it, t, dt);
-        }
+      if (rank == 0){
+        // Only first rank prints
+        fprintf(stdout, "i = %d, t = %e dt = %e \n",it, t, dt);
+      }
     #else 
       fprintf(stdout, "i = %d, t = %e dt = %e \n",it, t, dt);
     #endif
