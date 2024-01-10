@@ -62,12 +62,12 @@ List * list_append(List *list, void *data, char *name, char *type) {
 
 
   if (list == NULL){ // creation of the list
-//    fprintf (stdout,"creation of the list\n");
+    /* fprintf (stdout,"creation of the list\n"); */
     list = malloc(1 * sizeof *list);
     list[0].len = 0;
   }
   else{
-//    fprintf (stdout,"append to list\n");      
+    /* fprintf (stdout,"append to list\n");       */
     list = realloc(list, (list[0].len+1) * sizeof *list);
   }
 
@@ -108,7 +108,7 @@ void str2array(char *tmps2, double *array){
   p = strtok(tmps2,"[,]");
   while (p != NULL){
     array[n] = atof(p);
-    if (print){fprintf (stderr, "array[%d] = %g \n", n, array[n]);}
+    if (print){fprintf (stdout, "array[%d] = %g \n", n, array[n]);}
     p = strtok(NULL, ",");
     n += 1;
   }
@@ -131,14 +131,14 @@ void read_params(List *params, char *path2file)
           //check for type and assign value
           if (strcmp(params[i].type, "int") == 0) {
             *( (int*) params[i].data) = atoi(tmps2);
-            if (print){fprintf (stderr, "scan param %s: %d\n", params[i].name, *( (int*) params[i].data));}
+            if (print){fprintf (stdout, "scan param %s: %d\n", params[i].name, *( (int*) params[i].data));}
             }
           else if (strcmp(params[i].type, "double") == 0){
             *( (double*) params[i].data) = atof(tmps2);
-            if (print){fprintf (stderr, "scan param %s: %e\n", params[i].name, *( (double*) params[i].data));}
+            if (print){fprintf (stdout, "scan param %s: %e\n", params[i].name, *( (double*) params[i].data));}
             }
           else if (strcmp(params[i].type, "array") == 0){
-            if (print){fprintf (stderr, "scan param %s:\n", params[i].name);}
+            if (print){fprintf (stdout, "scan param %s:\n", params[i].name);}
             str2array(tmps2, (double*) params[i].data);
           }
         }
@@ -163,48 +163,35 @@ void read_params(List *params, char *path2file)
 
 void create_outdir()
 {
-  //  if (pid() == 0) {
-  for (int i=1; i<10000; i++) {
-    sprintf(dir_out, "outdir_%04d/", i);
-    if (mkdir(dir_out, 0777) == 0) {
-      #ifdef _MPI
-        if (rank == 0){
-          fprintf(stdout,"Writing output in %s\n",dir_out);
-        }
-      #else
-        fprintf(stdout,"Writing output in %s\n",dir_out);
-      #endif
-      
-      break;
+  if (pid() == 0) {
+    for (int i=1; i<10000; i++) {
+      sprintf(dir_out, "outdir_%04d/", i);
+      if (mkdir(dir_out, 0777) == 0) {
+        fprintf(stdout,"Writing output in %s\n",dir_out);        
+        break;
+      }
     }
   }
-  //  }
-  /* @if _MPI */
-  /*   MPI_Bcast(&dir_out, 80, MPI_CHAR, 0, MPI_COMM_WORLD); */
-  /* @endif */
+#if _MPI
+  MPI_Bcast(&dir_out, 80, MPI_CHAR, 0, MPI_COMM_WORLD);
+#endif
 }
 
 
 void backup_config(char *path2file)
 {
-  #ifdef _MPI
-    if (rank == 0){
-      fprintf(stdout, "Backup config\n");
-    }
-  #else
+  if (pid() == 0) {
     fprintf(stdout, "Backup config\n");
-  #endif
-  //  if (pid() == 0) {
-  char ch;
-  char name[90];
-  sprintf (name,"%sparams.in", dir_out);
-  FILE *source = fopen(path2file, "r");
-  FILE *target = fopen(name, "w");
-  while ((ch = fgetc(source)) != EOF)
-    fputc(ch, target);
-  fclose(source);
-  fclose(target);
-  //  }
+    char ch;
+    char name[90];
+    sprintf (name,"%sparams.in", dir_out);
+    FILE *source = fopen(path2file, "r");
+    FILE *target = fopen(name, "w");
+    while ((ch = fgetc(source)) != EOF)
+      fputc(ch, target);
+    fclose(source);
+    fclose(target);
+  }
 }
 
 

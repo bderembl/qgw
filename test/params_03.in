@@ -1,8 +1,8 @@
 #!sh
 # input parameter file
 # double gyre 
-Nx  = 64
-Ny  = 64
+NX  = 64
+NY  = 64
 nl = 3
 Lx = 4000e3
 f0 = 9.4e-05

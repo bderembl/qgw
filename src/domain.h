@@ -9,12 +9,8 @@
 
 void init_domain() {
 
-  Delta = Lx/Nx;
-  #ifdef _MPI
-    Ly = Nyt*Delta;
-  #else
-    Ly = Ny*Delta;
-  #endif
+  Delta = Lx/NX;
+  Ly = NY*Delta;
 
   // Coordinates in real space
   X = calloc( Nxp1, sizeof( double ) );
@@ -22,13 +18,8 @@ void init_domain() {
 
   for(int i = 0; i <Nxp1; i++)
     X[i] = i*Delta;
-  #ifdef _MPI
-    for(int j = 0; j<Nyp1; j++)
-      Y[j] = (j+Ny_startm1)*Delta;
-  #else
-    for(int j = 0; j<Nyp1; j++)
-      Y[j] = j*Delta;
-  #endif
+  for(int j = 0; j<Nyp1; j++)
+    Y[j] = (j + J0 - 1)*Delta;
 
 
   // Coordinates in spectral space
@@ -38,13 +29,8 @@ void init_domain() {
   for(int i = 1; i <Nx; i++)
     K[i] = pi*(i)/Lx;
 
-  #ifdef _MPI
-    for(int j = 1; j<Ny; j++)
-      L[j] = pi*(j + Ny_start)/Ly;
-  #else
-    for(int j = 1; j<Ny; j++)
-      L[j] = pi*(j)/Ly;
-  #endif
+  for(int j = 1; j<Ny; j++)
+    L[j] = pi*(j + J0)/Ly;
 
 }
 

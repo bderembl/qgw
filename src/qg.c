@@ -4,12 +4,11 @@
    Compile with 
      gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -llapacke -lnetcdf 
    If run with MPI compile with 
-    mpicc -O3 qg.c -o qg.e -lfftw3_mpi -lfftw3 -lm -llapacke -lnetcdf -D_MPI (-D_PRINT)
+    mpicc -O3 qg.c -o qg.e -lfftw3_mpi -lfftw3 -lm -llapacke -lnetcdf -D_MPI
 
    Compilation flags
      -D_STOCHASTIC : add a stochastic forcing
      -D_MPI : needed for mpi compilation
-     -D_PRINT : stdout printing is disabled in MPI, but can be reenabled by including this flag (for debugging)
     
    Run with
      ./qg.e
@@ -51,10 +50,10 @@ double *Y;
 double *K;
 double *L;
 
-// output variables for MPI output
-double *psi_out; 
-double *q_out;
-int NYp1;
+/* // output variables for MPI output */
+/* double *psi_out;  */
+/* double *q_out; */
+/* int NYYp1, NYY; */
 
 // FFTW in/outputs and plans
 double *in1;
@@ -65,25 +64,15 @@ double *out2;
 fftw_plan transfo_direct, transfo_inverse;
 
 // space and time constants
-int Nx, Ny;
+int NX, NY; // global size
+int Nx, Ny; // local size
 int Nxm1, Nym1;
 int Nxp1, Nyp1;
-
-//local or global MPI indices
-int Nyt; 
-int Nytm1;
-int Nytp1;
-int Ny_start; 
-int Ny_startm1;
-
-int rank;
-int n_ranks;
 
 // variable for printing out intermediate initialisation info
 int print = 1;
 
 // MPI FFTW
-ptrdiff_t NY, NX;
 ptrdiff_t alloc_local, local_n0, local_0_start;
 
 // MPI communication variables
@@ -120,6 +109,7 @@ double N2[nl_max] = {1.};
 
 // Local header files
 
+#include "mpi_utils.h"
 #include "extra.h"
 
 // declaration of list type needs to occur after extra.h import
@@ -135,36 +125,15 @@ List *params;
 int main(int argc,char* argv[])
 {
 
-  // sleep loop to attach debugger
-  // int ii=0;
-  // while (0 == ii) sleep(5);
+  init_mpi();
 
-  #ifdef _MPI
-    // Initiate MPI
-    MPI_Init(&argc, &argv);
-    fftw_mpi_init();
-
-    // find out your own rank
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-    // find out total number of ranks
-    MPI_Comm_size(MPI_COMM_WORLD, &n_ranks);
-
-    // disable stdout printing
-    print = 0;
-
-  #endif
-
-  #ifdef _PRINT
-    print = 1;
-  #endif
   /**
      Namelist and parameters
    */
 
   // add here variables to be read in the input file
-  params = list_append(params, &Nx, "Nx", "int");
-  params = list_append(params, &Ny, "Ny", "int");
+  params = list_append(params, &NX, "NX", "int");
+  params = list_append(params, &NY, "NY", "int");
   params = list_append(params, &nl, "nl", "int");
   params = list_append(params, &Lx, "Lx", "double");
   params = list_append(params, &dh, "dh", "array");
@@ -188,16 +157,8 @@ int main(int argc,char* argv[])
   // TODO: Only rank 0 reads, then broadcasts params
   read_params(params, file_param);
 
-  // Only rank 0 should create outdir when run in MPI
-  #ifdef _MPI
-    if (rank == 0){
-      create_outdir();
-      backup_config(file_param);
-    }
-  #else   
-    create_outdir();
-    backup_config(file_param);
-  #endif
+  create_outdir();
+  backup_config(file_param);
   
   /**
      Initialization
@@ -210,7 +171,7 @@ int main(int argc,char* argv[])
 
   #ifdef _STOCHASTIC
     init_stoch_forc();
-    printf("Stochastic forcing. \n");
+    fprintf(stdout,"Stochastic forcing. \n");
   #endif
 
   // First inversion
@@ -220,20 +181,9 @@ int main(int argc,char* argv[])
   char file_tmp[90];
   sprintf (file_tmp,"%s%s", dir_out, "vars.nc");
 
-  #ifdef _MPI
-    gather_info();
-    if (rank == 0){
-      psi_out = calloc( Nxp1*Nytp1*nl, sizeof( double ) );
-      q_out = calloc( Nxp1*Nytp1*nl, sizeof( double ) );
-      list_nc = list_append(list_nc, psi_out,"psi", "double");
-      list_nc = list_append(list_nc, q_out, "q", "double");
-      create_nc(file_tmp);
-    }
-  #else 
-    list_nc = list_append(list_nc, psi,"psi", "double");
-    list_nc = list_append(list_nc, q, "q", "double");
-    create_nc(file_tmp);
-  #endif
+  list_nc = list_append(list_nc, psi,"psi", "double");
+  list_nc = list_append(list_nc, q, "q", "double");
+  create_nc(file_tmp);
 
   /**
      Main Loop
@@ -241,14 +191,7 @@ int main(int argc,char* argv[])
 
   while(t < tend){
 
-    #ifdef _MPI
-      if (rank == 0){
-        // Only first rank prints
-        fprintf(stdout, "i = %d, t = %e dt = %e \n",it, t, dt);
-      }
-    #else 
-      fprintf(stdout, "i = %d, t = %e dt = %e \n",it, t, dt);
-    #endif
+    fprintf(stdout, "i = %d, t = %e dt = %e \n",it, t, dt);
 
     if (fabs (t - t_out) < TEPS*dt){
       
@@ -256,16 +199,8 @@ int main(int argc,char* argv[])
       invert_pv(q,psi);
 
       // write output
-      #ifdef _MPI
-        gather_output();
-        if (rank == 0){
-          printf("Write output, t = %e \n",t);
-          write_nc();
-        }
-      #else 
-        printf("Write output, t = %e \n",t);
-        write_nc();
-      #endif
+      fprintf(stdout,"Write output, t = %e \n",t);
+      write_nc();
 
     }
 
@@ -295,9 +230,6 @@ int main(int argc,char* argv[])
   if (list_nc) list_free(list_nc);
   if (params) list_free(params);
   
-  #ifdef _MPI    
-    free(psi_out);
-    free(q_out);
-    MPI_Finalize();
-  #endif
+  finalize();
+
 }

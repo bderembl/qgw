@@ -1,8 +1,8 @@
 #!sh
 # input parameter files
 
-Nx = 256
-Ny = 256
+NX = 256
+NY = 256
 Lx = 21.5443
 
 eps = 1

@@ -2,8 +2,8 @@
 # input parameter files
 # Stochastic forcing test, output is to be evaluated with python script test_energy_injection.py
 
-Nx = 128
-Ny = 128
+NX = 128
+NY = 128
 Lx = 1      
 
 sigma_f = 1

@@ -35,11 +35,11 @@ void clean_eigmode(){
 /* Auxiliary routine: printing a matrix */
 void print_matrix_rowmajor( char* desc, lapack_int m, lapack_int n, double* mat, lapack_int ldm ) {
   lapack_int i, j;
-  printf( "\n %s\n", desc );
+  fprintf(stdout, "\n %s\n", desc );
  
   for( i = 0; i < m; i++ ) {
-    for( j = 0; j < n; j++ ) printf( " %6.2e", mat[i*ldm+j] );
-    printf( "\n" );
+    for( j = 0; j < n; j++ ) fprintf(stdout, " %6.2e", mat[i*ldm+j] );
+    fprintf(stdout, "\n" );
   }
 }
  
@@ -47,20 +47,20 @@ void print_matrix_rowmajor( char* desc, lapack_int m, lapack_int n, double* mat,
 /* Auxiliary routine: printing a matrix */
 void print_matrix_colmajor( char* desc, lapack_int m, lapack_int n, double* mat, lapack_int ldm ) {
   lapack_int i, j;
-  printf( "\n %s\n", desc );
+  fprintf(stdout, "\n %s\n", desc );
  
   for( i = 0; i < m; i++ ) {
-    for( j = 0; j < n; j++ ) printf( " %6.2f", mat[i+j*ldm] );
-    printf( "\n" );
+    for( j = 0; j < n; j++ ) fprintf(stdout, " %6.2f", mat[i+j*ldm] );
+    fprintf(stdout, "\n" );
   }
 }
  
 /* Auxiliary routine: printing a vector of integers */
 void print_vector( char* desc, lapack_int n, lapack_int* vec ) {
   lapack_int j;
-  printf( "\n %s\n", desc );
-  for( j = 0; j < n; j++ ) printf( " %6i", vec[j] );
-  printf( "\n" );
+  fprintf(stdout, "\n %s\n", desc );
+  for( j = 0; j < n; j++ ) fprintf(stdout, " %6i", vec[j] );
+  fprintf(stdout, "\n" );
 }
 
 int compare_doubles (const void *a, const void *b)
@@ -146,7 +146,7 @@ void compute_eigmode () {
                             vl, nl, vr, nl );
 
   if (info < 0) {
-    printf("issue with lapack in eigmode.h\n");
+    fprintf(stdout,"issue with lapack in eigmode.h\n");
     exit(0);
   }
 
@@ -243,18 +243,17 @@ void compute_eigmode () {
   // set BT mode to zero
   iRd2[0] = 0.;
 
-  /*
+  
   if (print) {
 
     print_matrix_rowmajor( "Right eigenvectors (renorm)", nl, nl, cm2l, nl );
     print_matrix_rowmajor( "Left eigenvectors (renorm)", nl, nl, cl2m, nl );
-    printf("\n");
-    printf("Deformation radii: \n");
+    fprintf(stdout,"\n");
+    fprintf(stdout,"Deformation radii: \n");
     for (int k = 0; k < nl ; k++) {
-      printf("iRd2: %g , def radius: %g\n", iRd2[k], iRd2[k] > 0 ? sqrt(1/iRd2[k]) : 0);
+      fprintf(stdout,"iRd2: %g , def radius: %g\n", iRd2[k], iRd2[k] > 0 ? sqrt(1/iRd2[k]) : 0);
     }
   }
-  */
 
   free(Gamma_mat);
   free(wr);

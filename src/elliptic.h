@@ -13,56 +13,56 @@
 
 void init_elliptic(){
   
+  
+  /**
+     Prepare local indices
+  */
+
+  Nx = NX;
+  Ny = NY;
+
   Nxm1 = Nx - 1;
   Nym1 = Ny - 1;
 
   Nxp1 = Nx + 1;
   Nyp1 = Ny + 1;
 
-  #ifdef _MPI
+#ifdef _MPI
+  
+  /* get local data size and allocate */
+  alloc_local = fftw_mpi_local_size_2d(Nym1, Nxm1, MPI_COMM_WORLD,
+                                       &local_n0, &local_0_start);
+  
+  in1 = fftw_alloc_real(alloc_local);
+  in2 = fftw_alloc_real(alloc_local);
+  out1 = fftw_alloc_real(alloc_local);
+  out2 = fftw_alloc_real(alloc_local);
+  
+  /* create plan for out-of-place */
+  transfo_direct = fftw_mpi_plan_r2r_2d(Nym1, Nxm1, in1, out1, MPI_COMM_WORLD,
+                                        FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
+  transfo_inverse = fftw_mpi_plan_r2r_2d(Nym1, Nxm1, in2, out2, MPI_COMM_WORLD,
+                                         FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
+  
+  J0 = local_0_start + 1; // member the fourier grid starts at the index 1 of the real space grid
+  Ny = local_n0 + 1;
+  Nym1 = local_n0;
+  Nyp1 = local_n0 + 2;
+  
+#else
 
-    NY = Nym1; // Size of Fourier transforms
-    NX = Nxm1;
-
-    /* get local data size and allocate */
-    alloc_local = fftw_mpi_local_size_2d(NY, NX, MPI_COMM_WORLD,
-                                         &local_n0, &local_0_start);
-    
-    in1 = fftw_alloc_real(alloc_local);
-    in2 = fftw_alloc_real(alloc_local);
-    out1 = fftw_alloc_real(alloc_local);
-    out2 = fftw_alloc_real(alloc_local);
-    
-    /* create plan for out-of-place */
-    transfo_direct = fftw_mpi_plan_r2r_2d(NY, NX, in1, out1, MPI_COMM_WORLD,
-                                FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
-    transfo_inverse = fftw_mpi_plan_r2r_2d(NY, NX, in2, out2, MPI_COMM_WORLD,
-                                FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
-
-    /* From now on Ny and all related variables will be the local values, and the global 
-    values will be stored in Nyt.*/
-
-    Nyt = Ny;
-    Nytp1 = Nyp1;
-    Nytm1 = Nym1;
-    Ny_start = local_0_start + 1; // member the fourier grid starts at the index 1 of the real space grid
-    Ny_startm1 = local_0_start;
-    Nym1 = local_n0;
-    Nyp1 = local_n0+2;
-    Ny = local_n0+1;
-    
-  #else
-
-    in1  = calloc( Nxm1*Nym1, sizeof( double ) );
-    in2  = calloc( Nxm1*Nym1, sizeof( double ) );
-    out1 = calloc( Nxm1*Nym1, sizeof( double ) );
-    out2 = calloc( Nxm1*Nym1, sizeof( double ) );
-
-    transfo_direct  = fftw_plan_r2r_2d(Nym1,Nxm1, in1, out1, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
-    transfo_inverse = fftw_plan_r2r_2d(Nym1,Nxm1, in2, out2, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
-
-  #endif
-
+  J0 = 1;
+  
+  in1  = calloc( Nxm1*Nym1, sizeof( double ) );
+  in2  = calloc( Nxm1*Nym1, sizeof( double ) );
+  out1 = calloc( Nxm1*Nym1, sizeof( double ) );
+  out2 = calloc( Nxm1*Nym1, sizeof( double ) );
+  
+  transfo_direct  = fftw_plan_r2r_2d(Nym1,Nxm1, in1, out1, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
+  transfo_inverse = fftw_plan_r2r_2d(Nym1,Nxm1, in2, out2, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
+  
+#endif
+  
   // Prepare vertical mode inversion
   init_eigmode();
   compute_eigmode();
@@ -107,19 +107,11 @@ void invert_pv(double *q, double *psi) {
   fftw_execute(transfo_inverse);
 
   // Normalisation (different for MPI as we need to take the global Nyt)
-  #ifdef _MPI
-    for(int j = 1; j<Ny; j++){
-      for(int i = 1;i <Nx; i++){
-        out2[idx_fft(i,j)] = out2[idx_fft(i,j)]/(4*(Nxm1 + 1)*(Nytm1 + 1));
-      }
+  for(int j = 1; j<Ny; j++){
+    for(int i = 1;i <Nx; i++){
+      out2[idx_fft(i,j)] = out2[idx_fft(i,j)]/(4*(Nxm1 + 1)*NY);
     }
-  #else
-    for(int j = 1; j<Ny; j++){
-      for(int i = 1;i <Nx; i++){
-        out2[idx_fft(i,j)] = out2[idx_fft(i,j)]/(4*(Nxm1 + 1)*(Nym1 + 1));
-      }
-    }
-  #endif
+  }
 
     for(int j = 1;j<Ny; j++){
       for(int i = 1;i <Nx; i++){
