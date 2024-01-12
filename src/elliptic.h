@@ -27,6 +27,9 @@ void init_elliptic(){
   Nxp1 = Nx + 1;
   Nyp1 = Ny + 1;
 
+  NXp1 = NX + 1;
+  NYp1 = NY + 1;
+
 #ifdef _MPI
   
   /* get local data size and allocate */

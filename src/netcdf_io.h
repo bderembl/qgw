@@ -23,9 +23,6 @@ List *list_nc;
 int ncid;
 int t_varid;
 
-// global size
-int NXp1, NYp1;
-
 // temporary
 int nc_varid[1000];
 char * nc_varname[1000];
@@ -33,8 +30,6 @@ int nc_rec = -1;
 
 void create_nc(char* file_out)
 {
-  NXp1 = NX + 1;
-  NYp1 = NY + 1;
 
    sprintf (file_nc,"%s", file_out);
    if (pid() == 0) { // master
@@ -263,4 +258,71 @@ void write_nc() {
       ERR(nc_err);
   } // master
 //   printf("*** SUCCESS writing example file %s -- %d!\n", file_nc, nc_rec);
+}
+
+
+/**
+   Read NC
+
+   TODO: extend this routine to read anything
+ */
+
+void read_nc(char* file_in){
+
+  int ncfile, ndims, nvars, ngatts, unlimited;
+  int var_ndims, var_natts;
+  nc_type type;
+  char varname[NC_MAX_NAME+1];
+  int *dimids = NULL;
+
+  float * field = (float *)malloc((NX+1)*(NY+1)*nl*sizeof(float));
+
+  if ((nc_err = nc_open(file_in, NC_NOWRITE, &ncfile)))
+    ERR(nc_err);
+
+  if ((nc_err = nc_inq(ncfile, &ndims, &nvars, &ngatts, &unlimited)))
+    ERR(nc_err);
+
+  for(int iv=0; iv<nvars; iv++) {
+
+
+    if ((nc_err = nc_inq_var(ncfile, iv, varname, &type, &var_ndims, dimids,
+                             &var_natts)))
+      ERR(nc_err);
+
+
+    if (strcmp(varname,"q") == 0) {
+      fprintf(stdout,"Reading variable  %s!\n", "q");
+
+      size_t start[4], count[4];
+      start[0] = 0; //time
+      start[1] = 0;
+      start[2] = 0;
+      start[3] = 0;
+
+      count[0] = 1;
+      count[1] = nl;
+      count[2] = NX+1;
+      count[3] = NY+1;
+      if ((nc_err = nc_get_vara_float(ncfile, iv, start, count,
+                                      &field[0])))
+        ERR(nc_err);
+
+
+      for (int k = 0; k < nl; k++) {
+        for (int j = 0; j < Nyp1; j++) {
+          for (int i = 0; i < Nxp1; i++) {
+            q[idx(i,j,k)] = field[NYp1*NXp1*k + NXp1*(j+J0-1) + i];
+          }
+        }
+      } // end k loop
+
+    }
+  } // end nvar loop
+
+  free(field);
+
+  if ((nc_err = nc_close(ncfile)))
+    ERR(nc_err);
+  
 }

@@ -15,6 +15,10 @@
    or with
      mpirun -n NPROC qg.e
 
+     create a restart file:
+     ncks -d time,-1,-1 vars.nc restart.nc
+
+
    TODO
      - Documentation
      - Test cases
@@ -68,6 +72,7 @@ int NX, NY; // global size
 int Nx, Ny; // local size
 int Nxm1, Nym1;
 int Nxp1, Nyp1;
+int NXp1, NYp1; // global size
 
 // variable for printing out intermediate initialisation info
 int print = 1;
@@ -169,11 +174,13 @@ int main(int argc,char* argv[])
   init_vars();
   init_timestep();
 
-  #ifdef _STOCHASTIC
-    init_stoch_forc();
-    fprintf(stdout,"Stochastic forcing. \n");
-  #endif
+#ifdef _STOCHASTIC
+  init_stoch_forc();
+  fprintf(stdout,"Stochastic forcing. \n");
+#endif
 
+  // read q0 (restart)
+  read_nc("restart.nc");
   // First inversion
   invert_pv(q,psi);
 
