@@ -118,7 +118,7 @@ void invert_pv(double *q, double *psi) {
     // inverse transform
     fftw_execute(transfo_inverse);
 
-    // Normalisation (different for MPI as we need to take the global Nyt)
+    // Normalisation
     for(int j = 1; j<Ny; j++){
       for(int i = 1;i <Nx; i++){
         wrk1[idx_fft(i,j)] = wrk1[idx_fft(i,j)]/(4*(Nxm1 + 1)*NY);

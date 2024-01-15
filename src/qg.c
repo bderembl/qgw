@@ -209,6 +209,8 @@ int main(int argc,char* argv[])
   free(q);
   free(X);
   free(Y);
+  free(K);
+  free(L);
   
   if (list_nc) list_free(list_nc);
   if (params) list_free(params);
