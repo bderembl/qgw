@@ -23,14 +23,14 @@ void init_domain() {
 
 
   // Coordinates in spectral space
-  K = calloc( Nxp1, sizeof( double ) );
-  L = calloc( Nyp1, sizeof( double ) );
+  L = calloc( Nxp1, sizeof( double ) );
+  K = calloc( Nyp1, sizeof( double ) );
 
   for(int i = 1; i <Nx; i++)
-    K[i] = pi*(i)/Lx;
+    L[i] = pi*(i)/Lx;
 
   for(int j = 1; j<Ny; j++)
-    L[j] = pi*(j + J0)/Ly;
+    K[j] = pi*(j + J0)/Ly;
 
 }
 

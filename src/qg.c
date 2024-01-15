@@ -33,7 +33,6 @@
 #ifdef _MPI
   #include <mpi.h>
   #include <fftw3-mpi.h>
-  #include <unistd.h> //just for sleep function
 #endif
 
 #define sq(x) ((x)*(x)) // alias for square function
@@ -79,14 +78,6 @@ int print = 1;
 
 // MPI FFTW
 ptrdiff_t alloc_local, local_n0, local_0_start;
-
-// MPI communication variables
-int *size_gather;
-int *start_gather;
-int *rows_gather;
-int size_gather_local;
-int Ny_send_start;
-int Ny_send_rows;
 
 // Physical Parameters
 int nl = 1;
@@ -220,10 +211,10 @@ int main(int argc,char* argv[])
   /**
      Cleanup
   */
-	
-  #ifdef _STOCHASTIC
-    clean_stoch_forcing();
-  #endif
+
+#ifdef _STOCHASTIC
+  clean_stoch_forcing();
+#endif
 
   clean_fft();
   clean_timestep();

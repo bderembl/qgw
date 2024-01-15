@@ -43,9 +43,9 @@ void init_elliptic(){
   
   /* create plan for out-of-place */
   transfo_direct = fftw_mpi_plan_r2r_2d(Nym1, Nxm1, in1, out1, MPI_COMM_WORLD,
-                                        FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
+                                        FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_DESTROY_INPUT|FFTW_MPI_TRANSPOSED_OUT);
   transfo_inverse = fftw_mpi_plan_r2r_2d(Nym1, Nxm1, in2, out2, MPI_COMM_WORLD,
-                                         FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
+                                         FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_DESTROY_INPUT|FFTW_MPI_TRANSPOSED_IN);
   
   J0 = local_0_start + 1; // member the fourier grid starts at the index 1 of the real space grid
   Ny = local_n0 + 1;
@@ -61,8 +61,8 @@ void init_elliptic(){
   out1 = calloc( Nxm1*Nym1, sizeof( double ) );
   out2 = calloc( Nxm1*Nym1, sizeof( double ) );
   
-  transfo_direct  = fftw_plan_r2r_2d(Nym1,Nxm1, in1, out1, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
-  transfo_inverse = fftw_plan_r2r_2d(Nym1,Nxm1, in2, out2, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
+  transfo_direct  = fftw_plan_r2r_2d(Nym1,Nxm1, in1, out1, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_DESTROY_INPUT);
+  transfo_inverse = fftw_plan_r2r_2d(Nym1,Nxm1, in2, out2, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_DESTROY_INPUT);
   
 #endif
   
@@ -95,26 +95,26 @@ void invert_pv(double *q, double *psi) {
       }
     }
     
-  // direct transform
-  fftw_execute(transfo_direct);
+    // direct transform
+    fftw_execute(transfo_direct);
 
-  // solve elliptic in fourrier space
+    // solve elliptic in fourrier space
     for(int j = 1; j < Ny; j++){ // f = -g / ( kx^2 + ky^2 + Rd^2)
       for (int i = 1; i < Nx; i++){
-        double fact = - (sq(K[i]) + sq(L[j]) + iRd2[k]);
+        double fact = - (sq(L[i]) + sq(K[j]) + iRd2[k]);
         in2[idx_fft(i,j)] = out1[idx_fft(i,j)]/fact;
       }
     }
 
-  // inverse transform
-  fftw_execute(transfo_inverse);
+    // inverse transform
+    fftw_execute(transfo_inverse);
 
-  // Normalisation (different for MPI as we need to take the global Nyt)
-  for(int j = 1; j<Ny; j++){
-    for(int i = 1;i <Nx; i++){
-      out2[idx_fft(i,j)] = out2[idx_fft(i,j)]/(4*(Nxm1 + 1)*NY);
+    // Normalisation (different for MPI as we need to take the global Nyt)
+    for(int j = 1; j<Ny; j++){
+      for(int i = 1;i <Nx; i++){
+        out2[idx_fft(i,j)] = out2[idx_fft(i,j)]/(4*(Nxm1 + 1)*NY);
+      }
     }
-  }
 
     for(int j = 1;j<Ny; j++){
       for(int i = 1;i <Nx; i++){
