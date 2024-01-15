@@ -45,10 +45,10 @@ void init_elliptic(){
   /* get local data size and allocate */
   alloc_local = fftw_mpi_local_size_2d(Nym1, Nxm1, MPI_COMM_WORLD,
                                        &local_n0, &local_0_start);
-  
+   
   wrk1 = fftw_alloc_real(alloc_local);
   wrk2 = fftw_alloc_real(alloc_local);
-  
+
   /* create plan for out-of-place */
   transfo_direct = fftw_mpi_plan_r2r_2d(Nym1, Nxm1, wrk1, wrk2, MPI_COMM_WORLD,
                                         FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_DESTROY_INPUT|FFTW_MPI_TRANSPOSED_OUT);
@@ -63,14 +63,17 @@ void init_elliptic(){
 #else
 
   J0 = 1;
-  
-  wrk1  = calloc( Nxm1*Nym1, sizeof( double ) );
-  wrk2 = calloc( Nxm1*Nym1, sizeof( double ) );
+  alloc_local = Nxm1*Nym1;
+
+  wrk1 = fftw_alloc_real(alloc_local);
+  wrk2 = fftw_alloc_real(alloc_local);
+
   
   transfo_direct  = fftw_plan_r2r_2d(Nym1,Nxm1, wrk1, wrk2, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_DESTROY_INPUT);
   transfo_inverse = fftw_plan_r2r_2d(Nym1,Nxm1, wrk2, wrk1, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_DESTROY_INPUT);
   
 #endif
+
   
   // Prepare vertical mode inversion
   init_eigmode();
@@ -139,9 +142,9 @@ void invert_pv(double *q, double *psi) {
 
 void clean_fft(){
 
-  free(wrk1);
-  free(wrk2); 
-  
+  fftw_free(wrk1);
+  fftw_free(wrk2);
+
   fftw_destroy_plan(transfo_direct); 
   fftw_destroy_plan(transfo_inverse);
 
