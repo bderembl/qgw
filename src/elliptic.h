@@ -7,6 +7,17 @@
  */
 
 
+// FFTW in/outputs and plans
+double *in1;
+double *out1; 
+double *out2; 
+
+fftw_plan transfo_direct, transfo_inverse;
+
+// MPI FFTW
+ptrdiff_t alloc_local, local_n0, local_0_start;
+
+
 #include "eigmode.h"
 
 #define idx_fft(i,j) (j-1)*Nxm1 + (i-1)
@@ -37,14 +48,13 @@ void init_elliptic(){
                                        &local_n0, &local_0_start);
   
   in1 = fftw_alloc_real(alloc_local);
-  in2 = fftw_alloc_real(alloc_local);
   out1 = fftw_alloc_real(alloc_local);
   out2 = fftw_alloc_real(alloc_local);
   
   /* create plan for out-of-place */
   transfo_direct = fftw_mpi_plan_r2r_2d(Nym1, Nxm1, in1, out1, MPI_COMM_WORLD,
                                         FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_DESTROY_INPUT|FFTW_MPI_TRANSPOSED_OUT);
-  transfo_inverse = fftw_mpi_plan_r2r_2d(Nym1, Nxm1, in2, out2, MPI_COMM_WORLD,
+  transfo_inverse = fftw_mpi_plan_r2r_2d(Nym1, Nxm1, out1, out2, MPI_COMM_WORLD,
                                          FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_DESTROY_INPUT|FFTW_MPI_TRANSPOSED_IN);
   
   J0 = local_0_start + 1; // member the fourier grid starts at the index 1 of the real space grid
@@ -57,12 +67,11 @@ void init_elliptic(){
   J0 = 1;
   
   in1  = calloc( Nxm1*Nym1, sizeof( double ) );
-  in2  = calloc( Nxm1*Nym1, sizeof( double ) );
   out1 = calloc( Nxm1*Nym1, sizeof( double ) );
   out2 = calloc( Nxm1*Nym1, sizeof( double ) );
   
   transfo_direct  = fftw_plan_r2r_2d(Nym1,Nxm1, in1, out1, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_DESTROY_INPUT);
-  transfo_inverse = fftw_plan_r2r_2d(Nym1,Nxm1, in2, out2, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_DESTROY_INPUT);
+  transfo_inverse = fftw_plan_r2r_2d(Nym1,Nxm1, out1, out2, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_DESTROY_INPUT);
   
 #endif
   
@@ -102,7 +111,7 @@ void invert_pv(double *q, double *psi) {
     for(int j = 1; j < Ny; j++){ // f = -g / ( kx^2 + ky^2 + Rd^2)
       for (int i = 1; i < Nx; i++){
         double fact = - (sq(L[i]) + sq(K[j]) + iRd2[k]);
-        in2[idx_fft(i,j)] = out1[idx_fft(i,j)]/fact;
+        out1[idx_fft(i,j)] = out1[idx_fft(i,j)]/fact;
       }
     }
 
@@ -134,7 +143,6 @@ void invert_pv(double *q, double *psi) {
 void clean_fft(){
 
   free(in1);
-  free(in2); 
   free(out1); 
   free(out2); 
   

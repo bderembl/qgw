@@ -4,7 +4,7 @@
    Compile with 
      gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -llapacke -lnetcdf 
    If run with MPI compile with 
-    mpicc -O3 qg.c -o qg.e -lfftw3_mpi -lfftw3 -lm -llapacke -lnetcdf -D_MPI
+    mpicc -D_MPI -O3 qg.c -o qg.e -lfftw3_mpi -lfftw3 -lm -llapacke -lnetcdf
 
    Compilation flags
      -D_STOCHASTIC : add a stochastic forcing
@@ -53,18 +53,6 @@ double *Y;
 double *K;
 double *L;
 
-/* // output variables for MPI output */
-/* double *psi_out;  */
-/* double *q_out; */
-/* int NYYp1, NYY; */
-
-// FFTW in/outputs and plans
-double *in1;
-double *in2; 
-double *out1; 
-double *out2; 
-
-fftw_plan transfo_direct, transfo_inverse;
 
 // space and time constants
 int NX, NY; // global size
@@ -75,9 +63,6 @@ int NXp1, NYp1; // global size
 
 // variable for printing out intermediate initialisation info
 int print = 1;
-
-// MPI FFTW
-ptrdiff_t alloc_local, local_n0, local_0_start;
 
 // Physical Parameters
 int nl = 1;
