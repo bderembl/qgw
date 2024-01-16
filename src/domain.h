@@ -106,6 +106,8 @@ void adjust_bc(double *q, double *psi) {
     rank_p1 = 0;
   }
   
+// multiple communication version
+#if 1
   for(int k = 0; k<nl; k++){
     if (rank%2 == 0){ // even inner ranks (send first)
       
@@ -157,5 +159,68 @@ void adjust_bc(double *q, double *psi) {
         
     }
   }
+
+// attempt to send only one buffer
+#else
+  int n_transfer = 2*Nxp1*nl;
+  double * buffer_send1 = (double *)malloc(n_transfer*sizeof(double));
+  double * buffer_send2 = (double *)malloc(n_transfer*sizeof(double));
+
+  double * buffer_recv1 = (double *)malloc(n_transfer*sizeof(double));
+  double * buffer_recv2 = (double *)malloc(n_transfer*sizeof(double));
+
+  int id = 0;
+  for(int k = 0; k<nl; k++){
+      for(int i = 0; i < Nxp1; i++){
+        buffer_send1[id] = psi[idx(i,id_so,k)];
+        buffer_send2[id] = psi[idx(i,id_no,k)];
+        id += 1;
+      }
+      for(int i = 0; i < Nxp1; i++){
+        buffer_send1[id] = q[idx(i,id_so,k)];
+        buffer_send2[id] = q[idx(i,id_no,k)];
+        id += 1;
+      }
+  }
+  if (rank%2 == 0){ // even inner ranks (send first)
+
+    MPI_Status  status;
+    MPI_Send(&buffer_send1[0], n_transfer, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD); // South
+    MPI_Send(&buffer_send2[0], n_transfer, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD); // North
+
+    // receive
+    MPI_Recv(&buffer_recv2[0], n_transfer, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD, &status); //South
+    MPI_Recv(&buffer_recv1[0], n_transfer, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD, &status); //North
+    } else { // odd inner ranks (receive first)
+
+    MPI_Status  status;
+    // receive
+    MPI_Recv(&buffer_recv2[0], n_transfer, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD, &status); //South
+    MPI_Recv(&buffer_recv1[0], n_transfer, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD, &status); //North
+
+    MPI_Send(&buffer_send1[0], n_transfer, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD); // South
+    MPI_Send(&buffer_send2[0], n_transfer, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD); // North
+  }
+
+  id = 0;
+  for(int k = 0; k<nl; k++){
+      for(int i = 0; i < Nxp1; i++){
+        psi[idx(i,Ny,k)] = buffer_recv1[id];
+        psi[idx(i,0,k)]  = buffer_recv2[id];
+        id += 1;
+      }
+      for(int i = 0; i < Nxp1; i++){
+        q[idx(i,Ny,k)] = buffer_recv1[id];
+        q[idx(i,0,k)]  = buffer_recv2[id];
+        id += 1;
+      }
+  }
+
+  free(buffer_send1);
+  free(buffer_send2);
+  free(buffer_recv1);
+  free(buffer_recv2);
+
+#endif
 #endif
 }
