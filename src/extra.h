@@ -4,7 +4,7 @@
  */
 
 char dir_out[80]; // name of output dir
-char *file_param = "params.in"; // default param filename
+char file_param[80] = "params.in"; // default param filename
 
 
 /** 
