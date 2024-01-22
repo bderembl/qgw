@@ -154,11 +154,11 @@ void create_nc(char* file_out)
 
 void write_nc() {
 
-//  if (pid() == 0) { // master
+  if (pid() == 0) { // master
     /* open file. */
     if ((nc_err = nc_open(file_nc, NC_WRITE, &ncid)))
       ERR(nc_err);
-//  }
+  }
 
   // write time
   nc_rec += 1;
@@ -167,11 +167,11 @@ void write_nc() {
   size_t startt[1], countt[1];
   startt[0] = nc_rec; //time
   countt[0] = 1;
-  /* if (pid() == 0) { // master */
+  if (pid() == 0) { // master */
     if ((nc_err = nc_put_vara_float(ncid, t_varid, startt, countt,
                                     &loctime)))
       ERR(nc_err);
-  /* } // master */
+  } // master */
 
 
 
