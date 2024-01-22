@@ -1,6 +1,6 @@
 #Makefile for qgw
 
-#link the appropriate macro from macrolib : ln )sf ../macrolib/macro.Irene make.macro
+#link the appropriate macro from macrolib : ln -sf ../macrolib/macro.Irene make.macro
 include make.macro
 
 qgmake: qg.c
