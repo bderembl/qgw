@@ -3,40 +3,78 @@
     del^2 psi = q
 
     TODO:
-      - MPI routines
       - solve one direction with tridiagonal solver (Thomas algorithm)
-      - Multi layer
  */
 
 
-#include <fftw3.h>
-
-#include "eigmode.h"
-
-double *in1;
-double *in2; 
-double *out1; 
-double *out2; 
+// FFTW in/outputs and plans
+double *wrk1;
 
 fftw_plan transfo_direct, transfo_inverse;
 
+// MPI FFTW
+ptrdiff_t alloc_local, local_n0, local_0_start;
+
+
+#include "eigmode.h"
+
+#define idx_fft(i,j) (j-1)*Nxm1 + (i-1)
+
 void init_elliptic(){
-  fprintf(stdout,"Prepare fft..");
+  
+  
+  /**
+     Prepare local indices
+  */
 
-  in1  = calloc( Nxm1*Nym1, sizeof( double ) );
-  in2  = calloc( Nxm1*Nym1, sizeof( double ) );
-  out1 = calloc( Nxm1*Nym1, sizeof( double ) );
-  out2 = calloc( Nxm1*Nym1, sizeof( double ) );
+  Nx = NX;
+  Ny = NY;
 
-  transfo_direct  = fftw_plan_r2r_2d(Nym1,Nxm1, in1, out1, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
-  transfo_inverse = fftw_plan_r2r_2d(Nym1,Nxm1, in2, out2, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
+  Nxm1 = Nx - 1;
+  Nym1 = Ny - 1;
 
-  fprintf(stdout,"..done\n");
+  Nxp1 = Nx + 1;
+  Nyp1 = Ny + 1;
 
+  NXp1 = NX + 1;
+  NYp1 = NY + 1;
+
+#ifdef _MPI
+  
+  /* get local data size and allocate */
+  alloc_local = fftw_mpi_local_size_2d(Nym1, Nxm1, MPI_COMM_WORLD,
+                                       &local_n0, &local_0_start);
+   
+  wrk1 = fftw_alloc_real(alloc_local);
+
+  /* create plan for out-of-place */
+  transfo_direct = fftw_mpi_plan_r2r_2d(Nym1, Nxm1, wrk1, wrk1, MPI_COMM_WORLD,
+                                        FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_OUT);
+  transfo_inverse = fftw_mpi_plan_r2r_2d(Nym1, Nxm1, wrk1, wrk1, MPI_COMM_WORLD,
+                                         FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
+  
+  J0 = local_0_start + 1; // member the fourier grid starts at the index 1 of the real space grid
+  Ny = local_n0 + 1;
+  Nym1 = local_n0;
+  Nyp1 = local_n0 + 2;
+  
+#else
+
+  J0 = 1;
+  alloc_local = Nxm1*Nym1;
+
+  wrk1 = fftw_alloc_real(alloc_local);
+
+  
+  transfo_direct  = fftw_plan_r2r_2d(Nym1,Nxm1, wrk1, wrk1, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
+  transfo_inverse = fftw_plan_r2r_2d(Nym1,Nxm1, wrk1, wrk1, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
+  
+#endif
+
+  
   // Prepare vertical mode inversion
   init_eigmode();
   compute_eigmode();
-
 }
 
 void invert_pv(double *q, double *psi) {
@@ -49,57 +87,47 @@ void invert_pv(double *q, double *psi) {
       }
     }
   }
-
+  
   // loop on modes
   for(int k = 0; k<nl; k++){
-    int ll = 0;
+    
     for(int j = 1; j<Ny; j++){
       for(int i = 1; i <Nx; i++){
-        in1[ll] = 0;
+        wrk1[idx_fft(i,j)] = 0;
         // inner loop on layers: projection on modes
         for (int l = 0; l < nl ; l++) {
-          //        in1[idx_in(i,j)] = q[idx(i,j,k)];
-          in1[ll] += cl2m[k*nl+l]*q[idx(i,j,l)];
+          wrk1[idx_fft(i,j)] += cl2m[k*nl+l]*q[idx(i,j,l)];
         }
-        ll += 1;
       }
     }
     
-  // direct transform
-  fftw_execute(transfo_direct);
+    // direct transform
+    fftw_execute(transfo_direct);
 
-  // solve elliptic in fourrier space
-  ll = 0;
-    for(int j = 1; j < Ny; j++){ // f = -g / ( kx^2 + ky^2 )
+    // solve elliptic in fourrier space
+    for(int j = 1; j < Ny; j++){ // f = -g / ( kx^2 + ky^2 + Rd^2)
       for (int i = 1; i < Nx; i++){
-
-        double fact = - (sq(i*pi/Lx) + sq(j*pi/Ly) + iRd2[k]);
-        in2[ll] = out1[ll]/fact;
-        ll += 1;
+        double fact = - (sq(L[i]) + sq(K[j]) + iRd2[k]);
+        wrk1[idx_fft(i,j)] = wrk1[idx_fft(i,j)]/fact;
       }
     }
 
-  // inverse transform
-  fftw_execute(transfo_inverse);
+    // inverse transform
+    fftw_execute(transfo_inverse);
 
-  // Scaling
-  ll = 0;
+    // Normalisation
     for(int j = 1; j<Ny; j++){
       for(int i = 1;i <Nx; i++){
-//        out2[idx_fft(i,j)] = out2[idx_fft(i,j)]/(4*(Nxm1 + 1)*(Nym1 + 1));
-        out2[ll] = out2[ll]/(4*(Nxm1 + 1)*(Nym1 + 1));
-        ll += 1;
+        wrk1[idx_fft(i,j)] = wrk1[idx_fft(i,j)]/(4*(Nxm1 + 1)*NY);
       }
     }
 
-  ll = 0;
     for(int j = 1;j<Ny; j++){
       for(int i = 1;i <Nx; i++){
         // loop on layer: populating psi (layer l)
         for (int l = 0; l < nl ; l++) {
-          psi[idx(i,j,l)] += cm2l[l*nl+k]*out2[ll];
+          psi[idx(i,j,l)] += cm2l[l*nl+k]*wrk1[idx_fft(i,j)];
         }
-        ll += 1;
       }
     }
   } // mode loop
@@ -111,12 +139,14 @@ void invert_pv(double *q, double *psi) {
 
 void clean_fft(){
 
-  free(in1);
-  free(in2); 
-  free(out1); 
-  free(out2); 
-  
+  fftw_free(wrk1);
+
   fftw_destroy_plan(transfo_direct); 
   fftw_destroy_plan(transfo_inverse);
-  fftw_cleanup();
+
+  #ifdef _MPI
+    fftw_mpi_cleanup();
+  #else
+    fftw_cleanup();
+  #endif
 }

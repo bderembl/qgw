@@ -1,0 +1,12 @@
+FFTW_HOME=/ccc/work/cont003/gen12020/alberaur/DEV/fftw-3.3.10
+LAPACK_HOME=/ccc/products/lapack-3.9.0/intel--20.0.0/default
+
+NETCDF= -L$(NETCDFC_LIBDIR) -lnetcdf -I$(NETCDFC_INCDIR)
+FFTW=-L$(FFTW_HOME)/lib -lfftw3_mpi -lfftw3 -I$(FFTW_HOME)/include
+LAP=-L$(LAPACK_HOME)/lib64 -llapacke -I$(LAPACK_HOME)/include
+
+LIBS=$(FFTW) $(LAP) $(NETCDF) -lm
+FC=mpicc
+
+FLAGS=-D_MPI -O3
+#FLAGS=-D_MPI -O3 -g -traceback -ftrapuv

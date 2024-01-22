@@ -2,27 +2,38 @@
    QG model 
 
    Compile with 
-     gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -llapacke -lnetcdf
+     gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -llapacke -lnetcdf 
+   If run with MPI compile with 
+    mpicc -D_MPI -O3 qg.c -o qg.e -lfftw3_mpi -lfftw3 -lm -llapacke -lnetcdf
 
    Compilation flags
      -D_STOCHASTIC : add a stochastic forcing
-
+     -D_MPI : needed for mpi compilation
+    
    Run with
      ./qg.e
+   or with
+     mpirun -n NPROC qg.e
+
+     create a restart file:
+     ncks -d time,-1,-1 vars.nc restart.nc
 
 
    TODO
      - Documentation
      - Test cases
-     - MPI
      - GPU
 */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <fftw3.h>
 
-#include "extra.h"
+#ifdef _MPI
+  #include <mpi.h>
+  #include <fftw3-mpi.h>
+#endif
 
 #define sq(x) ((x)*(x)) // alias for square function
 #define min(p,q) p > q ? q : p
@@ -38,12 +49,22 @@ double *q;
 double *X;
 double *Y;
 
-List *params; 
+// Fourier Coefficients
+double *K;
+double *L;
+
 
 // space and time constants
-int Nx, Ny;
+int NX, NY; // global size
+int Nx, Ny; // local size
 int Nxm1, Nym1;
 int Nxp1, Nyp1;
+int NXp1, NYp1; // global size
+
+// variable for printing out intermediate initialisation info
+int print = 1;
+
+// Physical Parameters
 int nl = 1;
 double dh[nl_max] = {1.};
 double dhc[nl_max] = {1.};
@@ -57,8 +78,6 @@ double t_out = 0;
 double cfl = 0.2;
 double DT_max = 0;
 int it = 0;
-
-// physical constants and functions
 double beta = 0.;
 double nu = 0.;
 double tau0 = 0.;
@@ -69,6 +88,14 @@ double N2[nl_max] = {1.};
 
 #define forcing_q(t) (-tau0/dh[0]*forc_mode*pi/Ly*sin(forc_mode*pi*Y[j]/Ly))
 
+// Local header files
+
+#include "mpi_utils.h"
+#include "extra.h"
+
+// declaration of list type needs to occur after extra.h import
+List *params; 
+
 #include "domain.h"
 #include "elliptic.h"
 #include "forcing.h"
@@ -78,14 +105,16 @@ double N2[nl_max] = {1.};
 
 int main(int argc,char* argv[])
 {
-  
+
+  init_mpi();
+
   /**
      Namelist and parameters
    */
 
   // add here variables to be read in the input file
-  params = list_append(params, &Nx, "Nx", "int");
-  params = list_append(params, &Ny, "Ny", "int");
+  params = list_append(params, &NX, "NX", "int");
+  params = list_append(params, &NY, "NY", "int");
   params = list_append(params, &nl, "nl", "int");
   params = list_append(params, &Lx, "Lx", "double");
   params = list_append(params, &dh, "dh", "array");
@@ -106,45 +135,56 @@ int main(int argc,char* argv[])
   if (argc == 2)
     strcpy(file_param,argv[1]); // default: params.in
 
+  // TODO: Only rank 0 reads, then broadcasts params
   read_params(params, file_param);
+
   create_outdir();
   backup_config(file_param);
   
   /**
      Initialization
    */
-	
+
+  init_elliptic();
   init_domain();
   init_vars();
-  init_elliptic();
   init_timestep();
-    
-  #ifdef _STOCHASTIC
-    init_stoch_forc();
-    printf("Stochastic forcing. \n");
-  #endif
 
+#ifdef _STOCHASTIC
+  init_stoch_forc();
+  fprintf(stdout,"Stochastic forcing. \n");
+#endif
+
+  // read q0 (restart)
+  read_nc("restart.nc");
+  // First inversion
   invert_pv(q,psi);
+
+  // Initialize output
+  char file_tmp[90];
+  sprintf (file_tmp,"%s%s", dir_out, "vars.nc");
 
   list_nc = list_append(list_nc, psi,"psi", "double");
   list_nc = list_append(list_nc, q, "q", "double");
-  char file_tmp[90];
-  sprintf (file_tmp,"%s%s", dir_out, "vars.nc");
-  //create_nc("vars.nc");
   create_nc(file_tmp);
 
   /**
      Main Loop
   */
+
   while(t < tend){
 
     fprintf(stdout, "i = %d, t = %e dt = %e \n",it, t, dt);
 
     if (fabs (t - t_out) < TEPS*dt){
-      printf("Write output, t = %e \n",t);
+      
       t_out += dt_out;
       invert_pv(q,psi);
+
+      // write output
+      fprintf(stdout,"Write output, t = %e \n",t);
       write_nc();
+
     }
 
 
@@ -156,19 +196,25 @@ int main(int argc,char* argv[])
   /**
      Cleanup
   */
-	
-  #ifdef _STOCHASTIC
-    clean_stoch_forcing();
-  #endif
+
+#ifdef _STOCHASTIC
+  clean_stoch_forcing();
+#endif
 
   clean_fft();
   clean_timestep();
   clean_eigmode();
+  
   free(psi);
   free(q);
   free(X);
   free(Y);
+  free(K);
+  free(L);
+  
   if (list_nc) list_free(list_nc);
   if (params) list_free(params);
+  
+  finalize();
 
 }
