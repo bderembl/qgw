@@ -54,40 +54,7 @@ void  init_vars(){
 
 void adjust_bc(double *q, double *psi) {
 
-  // Overload function to perform communication with MPI neighbours and boundary adjustment at the same time
-
-  double psi_bc = 0.;
-
-  // first set default, then adjust with MPI
-  for(int k = 0; k<nl; k++){
-      // South
-      for(int i = 0; i <Nxp1; i++){
-        int j = 0;
-        psi[idx(i,j,k)] = psi_bc;
-        q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j+1,k)] - psi_bc);;
-      }
-    
-      // North
-      for(int i = 0; i <Nxp1; i++){
-        int j = Ny;
-        psi[idx(i,j,k)] = psi_bc;
-        q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j-1,k)] - psi_bc);
-      }
-    
-      // West
-      for(int j = 0; j <Nyp1; j++){
-        int i = 0;
-        psi[idx(i,j,k)] = psi_bc;
-        q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i+1,j,k)] - psi_bc);
-      }
-    
-      // East
-      for(int j = 0; j <Nyp1; j++){
-        int i = Nx;
-        psi[idx(i,j,k)] = psi_bc;
-        q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i-1,j,k)] - psi_bc);
-      }
-  }
+// first MPI inner communation and then physical domain BC
 
 #ifdef _MPI
 
@@ -106,8 +73,6 @@ void adjust_bc(double *q, double *psi) {
     rank_p1 = 0;
   }
   
-// multiple communication version
-
   for(int k = 0; k<nl; k++){
     if (rank%2 == 0){ // even inner ranks (send first)
       
@@ -160,4 +125,45 @@ void adjust_bc(double *q, double *psi) {
     }
   }
 #endif
+
+  double psi_bc = 0.;
+
+  for(int k = 0; k<nl; k++){
+      // South
+#ifdef _MPI
+    if (rank == 0)
+#endif
+      for(int i = 0; i <Nxp1; i++){
+        int j = 0;
+        psi[idx(i,j,k)] = psi_bc;
+        q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j+1,k)] - psi_bc);;
+      }
+
+      // North
+#ifdef _MPI
+    if (rank == n_ranks-1)
+#endif
+      for(int i = 0; i <Nxp1; i++){
+        int j = Ny;
+        psi[idx(i,j,k)] = psi_bc;
+        q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j-1,k)] - psi_bc);
+      }
+    
+      // West
+      for(int j = 0; j <Nyp1; j++){
+        int i = 0;
+        psi[idx(i,j,k)] = psi_bc;
+        q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i+1,j,k)] - psi_bc);
+      }
+    
+      // East
+      for(int j = 0; j <Nyp1; j++){
+        int i = Nx;
+        psi[idx(i,j,k)] = psi_bc;
+        q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i-1,j,k)] - psi_bc);
+      }
+  }
+
+
+
 }
