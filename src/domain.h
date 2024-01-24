@@ -30,7 +30,7 @@ void init_domain() {
     L[i] = pi*(i)/Lx;
 
   for(int j = 1; j<Ny; j++)
-    K[j] = pi*(j + J0)/Ly;
+    K[j] = pi*(j + J0 - 1)/Ly;
 
 }
 
