@@ -40,11 +40,17 @@ void init_elliptic(){
   NYp1 = NY + 1;
 
 #ifdef _MPI
+
+  long int fft_dims[2];
+  fft_dims[0] = Nym1;
+  fft_dims[1] = Nxm1;
   
+  int block0 = (int) NY/n_ranks;
+
   /* get local data size and allocate */
-  alloc_local = fftw_mpi_local_size_2d(Nym1, Nxm1, MPI_COMM_WORLD,
-                                       &local_n0, &local_0_start);
-   
+  alloc_local = fftw_mpi_local_size_many(2, &fft_dims[0],1,block0,MPI_COMM_WORLD,
+                                         &local_n0, &local_0_start);
+
   wrk1 = fftw_alloc_real(alloc_local);
 
   /* create plan for out-of-place */
