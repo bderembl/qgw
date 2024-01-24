@@ -59,14 +59,14 @@ void init_elliptic(){
   transfo_inverse = fftw_mpi_plan_r2r_2d(Nym1, Nxm1, wrk1, wrk1, MPI_COMM_WORLD,
                                          FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
   
-  J0 = local_0_start + 1; // member the fourier grid starts at the index 1 of the real space grid
+  J0 = local_0_start;
   Ny = local_n0 + 1;
   Nym1 = local_n0;
   Nyp1 = local_n0 + 2;
   
 #else
 
-  J0 = 1;
+  J0 = 0;
   alloc_local = Nxm1*Nym1;
 
   wrk1 = fftw_alloc_real(alloc_local);

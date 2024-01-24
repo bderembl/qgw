@@ -226,7 +226,7 @@ void write_nc() {
     for (int k = 0; k < nl; k++) {
       for (int j = 0; j < Nyp1; j++) {
         for (int i = 0; i < Nxp1; i++) {
-          field[NYp1*NXp1*k + NXp1*(j+J0-1) + i] = data_loc[idx(i,j,k)];
+          field[NYp1*NXp1*k + NXp1*(j + J0) + i] = data_loc[idx(i,j,k)];
         }
       }
     }
@@ -312,7 +312,7 @@ void read_nc(char* file_in){
       for (int k = 0; k < nl; k++) {
         for (int j = 0; j < Nyp1; j++) {
           for (int i = 0; i < Nxp1; i++) {
-            q[idx(i,j,k)] = field[NYp1*NXp1*k + NXp1*(j+J0-1) + i];
+            q[idx(i,j,k)] = field[NYp1*NXp1*k + NXp1*(j + J0) + i];
           }
         }
       } // end k loop

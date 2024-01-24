@@ -19,7 +19,7 @@ void init_domain() {
   for(int i = 0; i <Nxp1; i++)
     X[i] = i*Delta;
   for(int j = 0; j<Nyp1; j++)
-    Y[j] = (j + J0 - 1)*Delta;
+    Y[j] = (j + J0)*Delta;
 
 
   // Coordinates in spectral space
@@ -30,7 +30,7 @@ void init_domain() {
     L[i] = pi*(i)/Lx;
 
   for(int j = 1; j<Ny; j++)
-    K[j] = pi*(j + J0 - 1)/Ly;
+    K[j] = pi*(j + J0)/Ly;
 
 }
 
