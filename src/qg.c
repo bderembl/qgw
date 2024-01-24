@@ -33,6 +33,7 @@
 #ifdef _MPI
   #include <mpi.h>
   #include <fftw3-mpi.h>
+  int rank_crit; // last rank to obtain a meaningful data chunk
 #endif
 
 #define sq(x) ((x)*(x)) // alias for square function

@@ -210,39 +210,39 @@ void write_nc() {
 
   for (int iv = 0; iv < list_nc[0].len; iv++){
 
-    // TODO: FOR MPI
-    for (int k = 0; k < nl; k++) {
-      for (int j = 0; j < NYp1; j++) {
-        for (int i = 0; i < NXp1; i++) {
-          field[NYp1*NXp1*k + NXp1*j + i] = nodata; // for MPI
-//          field[Nyp1*Nxp1*k + Nxp1*j + i] = 0.;
+      // TODO: FOR MPI
+      for (int k = 0; k < nl; k++) {
+        for (int j = 0; j < NYp1; j++) {
+          for (int i = 0; i < NXp1; i++) {
+            field[NYp1*NXp1*k + NXp1*j + i] = nodata; // for MPI
+  //          field[Nyp1*Nxp1*k + Nxp1*j + i] = 0.;
+          }
         }
       }
-    }
 
-
+      double * data_loc = (double*)list_nc[iv].data;
     // TODO: FOR MPI
-    double * data_loc = (double*)list_nc[iv].data;
-    for (int k = 0; k < nl; k++) {
-      for (int j = 0; j < Nyp1; j++) {
-        for (int i = 0; i < Nxp1; i++) {
-          field[NYp1*NXp1*k + NXp1*(j + J0) + i] = data_loc[idx(i,j,k)];
+#if _MPI 
+    if (rank <= rank_crit) // only subcritical ranks are allowed to write their data
+#endif
+
+      for (int k = 0; k < nl; k++) {
+        for (int j = 0; j < Nyp1; j++) {
+          for (int i = 0; i < Nxp1; i++) {
+            field[NYp1*NXp1*k + NXp1*(j + J0) + i] = data_loc[idx(i,j,k)];
+          }
         }
       }
-    }
-
-
     
     if (pid() == 0) { // master
+
 #if _MPI
-        MPI_Reduce (MPI_IN_PLACE, &field[0], NXp1*NYp1*nl, MPI_FLOAT, MPI_MIN, 0,MPI_COMM_WORLD);
+      MPI_Reduce (MPI_IN_PLACE, &field[0], NXp1*NYp1*nl, MPI_FLOAT, MPI_MIN, 0,MPI_COMM_WORLD);
 #endif
-  
 
-     if ((nc_err = nc_put_vara_float(ncid, nc_varid[iv], start, count,
-        			      &field[0])))
-         ERR(nc_err);
-
+      if ((nc_err = nc_put_vara_float(ncid, nc_varid[iv], start, count,
+        			       &field[0])))
+          ERR(nc_err);
   } // master
 #if _MPI
   else // slave
