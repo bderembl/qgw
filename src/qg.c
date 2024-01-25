@@ -46,20 +46,6 @@ double pi = 3.141592653589793;
 // field variables
 double *psi;
 double *q;
-double *X;
-double *Y;
-
-// Fourier Coefficients
-double *K;
-double *L;
-
-
-// space and time constants
-int NX, NY; // global size
-int Nx, Ny; // local size
-int Nxm1, Nym1;
-int Nxp1, Nyp1;
-int NXp1, NYp1; // global size
 
 // variable for printing out intermediate initialisation info
 int print = 1;

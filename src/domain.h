@@ -4,6 +4,25 @@
    
 */
 
+
+// global size
+int NX, NY;
+int NXp1, NYp1;
+int NXm1, NYm1;
+
+// local size
+int Nx, Ny;
+int Nxm1, Nym1;
+int Nxp1, Nyp1;
+
+// Physical grid
+double *X;
+double *Y;
+
+// Fourier Coefficients
+double *K;
+double *L;
+
 // grid indices
 #define idx(i,j,k) (k)*Nxp1*Nyp1 + (j)*Nxp1 + (i)
 
@@ -19,7 +38,7 @@ void init_domain() {
   for(int i = 0; i <Nxp1; i++)
     X[i] = i*Delta;
   for(int j = 0; j<Nyp1; j++)
-    Y[j] = (j + J0 - 1)*Delta;
+    Y[j] = (j + J0)*Delta;
 
 
   // Coordinates in spectral space
@@ -54,20 +73,97 @@ void  init_vars(){
 
 void adjust_bc(double *q, double *psi) {
 
-  // Overload function to perform communication with MPI neighbours and boundary adjustment at the same time
+// first MPI inner communation and then physical domain BC
+
+#ifdef _MPI
+
+  int id_so = 1;    // index to send at southern boundary
+  int id_no = Nym1; // index to send at northern boundary
+  int rank_m1 = rank - 1;
+  int rank_p1 = rank + 1;
+  
+  // adjust indices and ranks for first and last processor 
+  if (rank == 0) { // south
+    id_so = 0;
+    rank_m1 = rank_crit;
+  }
+  if (rank == rank_crit){ // north
+    id_no = Ny;
+    rank_p1 = 0;
+  }
+
+  if (rank <= rank_crit){
+    for(int k = 0; k<nl; k++){
+      if (rank%2 == 0){ // even inner ranks (send first)
+        
+        //send/receive psi
+        MPI_Status  status;
+            
+        // send
+        MPI_Send(&psi[idx(0,id_so,k)], Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD); // South
+        MPI_Send(&psi[idx(0,id_no,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD); // North
+            
+        // receive
+        MPI_Recv(&psi[idx(0,Ny,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD, &status); //North
+        MPI_Recv(&psi[idx(0,0,k)],  Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD, &status); //South
+            
+        // send/receive q
+        MPI_Status  status2;
+            
+        // send
+        MPI_Send(&q[idx(0,id_so,k)], Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD); // South 
+        MPI_Send(&q[idx(0,id_no,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD); // North
+            
+        // receive
+        MPI_Recv(&q[idx(0,Ny,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD, &status2); // North
+        MPI_Recv(&q[idx(0,0,k)],  Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD, &status2); //South
+          
+      } else { // odd inner ranks (receive first)
+            
+        //send/receive psi
+        MPI_Status  status;
+            
+        // receive
+        MPI_Recv(&psi[idx(0,Ny,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD, &status); //North
+        MPI_Recv(&psi[idx(0,0,k)],  Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD, &status); //South
+            
+        // send
+        MPI_Send(&psi[idx(0,id_so,k)], Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD); // South
+        MPI_Send(&psi[idx(0,id_no,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD); // North
+            
+        // send/receive q
+        MPI_Status  status2;
+            
+        // receive
+        MPI_Recv(&q[idx(0,Ny,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD, &status2); // North
+        MPI_Recv(&q[idx(0,0,k)],  Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD, &status2); //South
+            
+        // send
+        MPI_Send(&q[idx(0,id_so,k)], Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD); // South
+        MPI_Send(&q[idx(0,id_no,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD); // North
+          
+      }
+    }
+  }
+#endif
 
   double psi_bc = 0.;
 
-  // first set default, then adjust with MPI
   for(int k = 0; k<nl; k++){
       // South
+#ifdef _MPI
+    if (rank == 0)
+#endif
       for(int i = 0; i <Nxp1; i++){
         int j = 0;
         psi[idx(i,j,k)] = psi_bc;
         q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j+1,k)] - psi_bc);;
       }
-    
+
       // North
+#ifdef _MPI
+    if (rank == rank_crit)
+#endif
       for(int i = 0; i <Nxp1; i++){
         int j = Ny;
         psi[idx(i,j,k)] = psi_bc;
@@ -89,75 +185,6 @@ void adjust_bc(double *q, double *psi) {
       }
   }
 
-#ifdef _MPI
 
-  int id_so = 1;    // index to send at southern boundary
-  int id_no = Nym1; // index to send at northern boundary
-  int rank_m1 = rank - 1;
-  int rank_p1 = rank + 1;
-  
-  // adjust indices and ranks for first and last processor 
-  if (rank == 0) { // south
-    id_so = 0;
-    rank_m1 = n_ranks-1;
-  }
-  if (rank == n_ranks-1){ // north
-    id_no = Ny;
-    rank_p1 = 0;
-  }
-  
-// multiple communication version
 
-  for(int k = 0; k<nl; k++){
-    if (rank%2 == 0){ // even inner ranks (send first)
-      
-      //send/receive psi
-      MPI_Status  status;
-          
-      // send
-      MPI_Send(&psi[idx(0,id_so,k)], Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD); // South
-      MPI_Send(&psi[idx(0,id_no,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD); // North
-          
-      // receive
-      MPI_Recv(&psi[idx(0,0,k)],  Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD, &status); //South
-      MPI_Recv(&psi[idx(0,Ny,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD, &status); //North
-          
-      // send/receive q
-      MPI_Status  status2;
-          
-      // send
-      MPI_Send(&q[idx(0,id_so,k)], Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD); // South 
-      MPI_Send(&q[idx(0,id_no,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD); // North
-          
-      // receive
-      MPI_Recv(&q[idx(0,0,k)],  Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD, &status2); //South
-      MPI_Recv(&q[idx(0,Ny,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD, &status2); // North
-        
-    } else { // odd inner ranks (receive first)
-          
-      //send/receive psi
-      MPI_Status  status;
-          
-      // receive
-      MPI_Recv(&psi[idx(0,0,k)],  Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD, &status); //South
-      MPI_Recv(&psi[idx(0,Ny,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD, &status); //North
-          
-      // send
-      MPI_Send(&psi[idx(0,id_so,k)], Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD); // South
-      MPI_Send(&psi[idx(0,id_no,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD); // North
-          
-      // send/receive q
-      MPI_Status  status2;
-          
-      // receive
-      MPI_Recv(&q[idx(0,0,k)],  Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD, &status2); //South
-      MPI_Recv(&q[idx(0,Ny,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD, &status2); // North
-          
-      // send
-      MPI_Send(&q[idx(0,id_so,k)], Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD); // South
-      MPI_Send(&q[idx(0,id_no,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD); // North
-        
-    }
-  }
-#endif
 }
