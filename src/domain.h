@@ -4,6 +4,25 @@
    
 */
 
+
+// global size
+int NX, NY;
+int NXp1, NYp1;
+int NXm1, NYm1;
+
+// local size
+int Nx, Ny;
+int Nxm1, Nym1;
+int Nxp1, Nyp1;
+
+// Physical grid
+double *X;
+double *Y;
+
+// Fourier Coefficients
+double *K;
+double *L;
+
 // grid indices
 #define idx(i,j,k) (k)*Nxp1*Nyp1 + (j)*Nxp1 + (i)
 
