@@ -131,8 +131,8 @@ int main(int argc,char* argv[])
      Initialization
    */
 
-  init_elliptic();
   init_domain();
+  init_elliptic();
   init_vars();
   init_timestep();
 

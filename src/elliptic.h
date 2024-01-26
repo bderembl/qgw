@@ -9,11 +9,7 @@
 
 // FFTW in/outputs and plans
 double *wrk1;
-
 fftw_plan transfo_direct, transfo_inverse;
-
-// MPI FFTW
-ptrdiff_t alloc_local, local_n0, local_0_start;
 
 
 #include "eigmode.h"
@@ -21,60 +17,23 @@ ptrdiff_t alloc_local, local_n0, local_0_start;
 #define idx_fft(i,j) (j-1)*Nxm1 + (i-1)
 
 void init_elliptic(){
-  
-  /**
-     Prepare local indices
-  */
 
-  // idealy this should be in init_domain
-  Nx = NX;
-  Ny = NY;
+  ptrdiff_t alloc_local = Nxm1*Nym1;
+  wrk1 = fftw_alloc_real(alloc_local);
 
-  Nxm1 = Nx - 1;
-  Nym1 = Ny - 1;
-
-  Nxp1 = Nx + 1;
-  Nyp1 = Ny + 1;
-
-  NXm1 = NX - 1;
-  NYm1 = NY - 1;
-
-  NXp1 = NX + 1;
-  NYp1 = NY + 1;
-
+  /* create FFT plans */
 #ifdef _MPI
-
-  int blocksize;
-  blocksize = ceil((double)NYm1/n_ranks);
-  rank_crit = ceil((double)NYm1/blocksize)-1;
-  
-  /* get local data size and allocate */
-  alloc_local = fftw_mpi_local_size_2d(NYm1, NXm1, MPI_COMM_WORLD,
-                                       &local_n0, &local_0_start);
-  wrk1 = fftw_alloc_real(alloc_local);
-
-  /* create plan for out-of-place */
   transfo_direct = fftw_mpi_plan_r2r_2d(NYm1, NXm1, wrk1, wrk1, MPI_COMM_WORLD,
-                                        FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_OUT);
+                                        FFTW_RODFT00, FFTW_RODFT00,
+                                        FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_OUT);
   transfo_inverse = fftw_mpi_plan_r2r_2d(NYm1, NXm1, wrk1, wrk1, MPI_COMM_WORLD,
-                                         FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
-  
-  J0 = local_0_start;
-  Ny = local_n0 + 1;
-  Nym1 = local_n0;
-  Nyp1 = local_n0 + 2;
-
+                                         FFTW_RODFT00, FFTW_RODFT00, 
+                                         FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
 #else
-
-  J0 = 0;
-  alloc_local = Nxm1*Nym1;
-
-  wrk1 = fftw_alloc_real(alloc_local);
-
-  
-  transfo_direct  = fftw_plan_r2r_2d(Nym1,Nxm1, wrk1, wrk1, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
-  transfo_inverse = fftw_plan_r2r_2d(Nym1,Nxm1, wrk1, wrk1, FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
-  
+  transfo_direct  = fftw_plan_r2r_2d(Nym1,Nxm1, wrk1, wrk1,
+                                     FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
+  transfo_inverse = fftw_plan_r2r_2d(Nym1,Nxm1, wrk1, wrk1,
+                                     FFTW_RODFT00, FFTW_RODFT00, FFTW_EXHAUSTIVE);
 #endif
 
   

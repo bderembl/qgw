@@ -31,6 +31,44 @@ void init_domain() {
   Delta = Lx/NX;
   Ly = NY*Delta;
 
+  /**
+     Prepare local indices
+  */
+
+  Nx = NX;
+  Ny = NY;
+
+  Nxm1 = Nx - 1;
+  Nym1 = Ny - 1;
+
+  Nxp1 = Nx + 1;
+  Nyp1 = Ny + 1;
+
+  NXm1 = NX - 1;
+  NYm1 = NY - 1;
+
+  NXp1 = NX + 1;
+  NYp1 = NY + 1;
+
+  J0 = 0;
+
+#ifdef _MPI
+  int blocksize;
+  blocksize = ceil((double)NYm1/n_ranks);
+  rank_crit = ceil((double)NYm1/blocksize)-1;
+  
+  /* get local data size and allocate */
+  /* Domain decomposition is given by FFTW */
+  ptrdiff_t alloc_local, local_n0, local_0_start;
+  alloc_local = fftw_mpi_local_size_2d(NYm1, NXm1, MPI_COMM_WORLD,
+                                       &local_n0, &local_0_start);
+  J0 = local_0_start;
+  Ny = local_n0 + 1;
+  Nym1 = local_n0;
+  Nyp1 = local_n0 + 2;
+#endif
+
+
   // Coordinates in real space
   X = calloc( Nxp1, sizeof( double ) );
   Y = calloc( Nyp1, sizeof( double ) );
