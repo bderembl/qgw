@@ -21,11 +21,3 @@ p[idx(i,j)]
 
 This may simplify or complexify the move to MPI
 
-* Boundary conditions
-
-
-- bc_fac is a parameter that controls the type of boundary conditions:
-- bc_fac = 0      -> free slip BC (default)
-- bc_fac = [0..1] -> partial slip
-- bc_fac = 1      -> no slip BC
-- bc_fac = -1     -> periodic BC (experimental)

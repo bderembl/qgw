@@ -111,13 +111,13 @@ int main(int argc,char* argv[])
   params = list_append(params, &beta, "beta", "double");
   params = list_append(params, &nu, "nu", "double");
   params = list_append(params, &N2, "N2", "array");
+  params = list_append(params, &Ld, "Ld", "double");
   params = list_append(params, &bc_fac, "bc_fac", "double");
   params = list_append(params, &tend, "tend", "double");
   params = list_append(params, &dt_out, "dt_out", "double");
   params = list_append(params, &sigma_f, "sigma_f", "double");
   params = list_append(params, &k_f, "k_f", "double");
   params = list_append(params, &cfl, "cfl", "double");
-  params = list_append(params, &Ld, "Ld", "double");
 
   // Search for the configuration file with a given path or read params.in 
   if (argc == 2)

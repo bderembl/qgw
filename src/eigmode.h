@@ -241,7 +241,7 @@ void compute_eigmode () {
     iRd2[k] = wr[k];
   }
 
-  // set BT mode to zero (unless it's a 1.5 layers simulation)
+  // set BT mode to zero (unless it's a 1.5 layer simulation)
   if (Ld == 0) {
     iRd2[0] = 0.;
   } else {
