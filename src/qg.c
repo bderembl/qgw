@@ -71,6 +71,7 @@ double forc_mode = 1.0;
 double f0 = 1.e-5;
 double bc_fac = 0.;
 double N2[nl_max] = {1.};
+double Ld = 0.;
 
 #define forcing_q(t) (-tau0/dh[0]*forc_mode*pi/Ly*sin(forc_mode*pi*Y[j]/Ly))
 
@@ -116,6 +117,7 @@ int main(int argc,char* argv[])
   params = list_append(params, &sigma_f, "sigma_f", "double");
   params = list_append(params, &k_f, "k_f", "double");
   params = list_append(params, &cfl, "cfl", "double");
+  params = list_append(params, &Ld, "Ld", "double");
 
   // Search for the configuration file with a given path or read params.in 
   if (argc == 2)
@@ -123,7 +125,7 @@ int main(int argc,char* argv[])
 
   // TODO: Only rank 0 reads, then broadcasts params
   read_params(params, file_param);
-
+  
   create_outdir();
   backup_config(file_param);
   
