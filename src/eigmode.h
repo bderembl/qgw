@@ -240,8 +240,13 @@ void compute_eigmode () {
   for (int k = 1; k < nl ; k++) {
     iRd2[k] = wr[k];
   }
-  // set BT mode to zero
-  iRd2[0] = 0.;
+
+  // set BT mode to zero (unless it's a 1.5 layer simulation)
+  if (Ld == 0) {
+    iRd2[0] = 0.;
+  } else {
+    iRd2[0] = 1/sq(Ld);
+  }
 
   
   if (print) {

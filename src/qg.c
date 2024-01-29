@@ -71,6 +71,7 @@ double forc_mode = 1.0;
 double f0 = 1.e-5;
 double bc_fac = 0.;
 double N2[nl_max] = {1.};
+double Ld = 0.;
 
 #define forcing_q(t) (-tau0/dh[0]*forc_mode*pi/Ly*sin(forc_mode*pi*Y[j]/Ly))
 
@@ -110,6 +111,7 @@ int main(int argc,char* argv[])
   params = list_append(params, &beta, "beta", "double");
   params = list_append(params, &nu, "nu", "double");
   params = list_append(params, &N2, "N2", "array");
+  params = list_append(params, &Ld, "Ld", "double");
   params = list_append(params, &bc_fac, "bc_fac", "double");
   params = list_append(params, &tend, "tend", "double");
   params = list_append(params, &dt_out, "dt_out", "double");
@@ -123,7 +125,7 @@ int main(int argc,char* argv[])
 
   // TODO: Only rank 0 reads, then broadcasts params
   read_params(params, file_param);
-
+  
   create_outdir();
   backup_config(file_param);
   

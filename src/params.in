@@ -16,6 +16,9 @@ bc_fac = 1.
 dh = [300, 3700]
 N2 = [3e-05]
 
+# for 1.5 layer simulations (or in general the deformation radius of barotropic mode)
+Ld = 40000
+
 nu = 20000
 hEkb = 0
 
