@@ -25,7 +25,7 @@ $13^f$, where $e+f$ is either 0 or 1, and the other exponents are arbitrary.
 - nl: number of layers
 - Lx: Length of domain in X direction
 - dh: Layer thicknesses e.g. [200, 500, 2000]
-- tau0: wind stress maximum [tau0] = L$^2$ s$^{-2}$
+- tau0: wind stress maximum [tau0] = $L^2 s^{-2}$
 
   default forcing is 
 
