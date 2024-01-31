@@ -4,6 +4,8 @@
    
 */
 
+// topographic shelf
+#define shelf(x,d) (1 - exp(-sq(x)/(2*sq(d))))
 
 // global size
 int NX, NY;
@@ -91,12 +93,12 @@ void init_domain() {
 
 }
 
-
 void  init_vars(){
 
 
-  psi = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
-  q   = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
+  psi  = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
+  q    = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
+  topo = calloc( Nxp1*Nyp1, sizeof( double ) );
 
   for(int k = 0; k<nl; k++){
     for(int j = 0; j<Nyp1; j++){
@@ -106,6 +108,16 @@ void  init_vars(){
       }
     }
   }
+
+  for(int j = 0; j<Nyp1; j++){
+    for(int i = 0;i <Nxp1; i++){
+      topo[idx(i,j,0)] = h_topo*(1-shelf(X[i],w_topo)*
+                                 shelf(Lx-X[i],w_topo)*
+                                 shelf(Y[j],w_topo)*
+                                 shelf(Ly-Y[j],w_topo));
+    }
+  }
+  
 }
 
 
