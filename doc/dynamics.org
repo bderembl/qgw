@@ -5,16 +5,21 @@
 In the QG formalism, topography enters the equations via a term in the bottom
 layer of the form
 
-$$ \frac{dq_l}{dt} = ... -\frac{f_0}{dh_l} Jac(\psi_l, h_{topo})$$
+$$ \frac{dq_l}{dt} = ... -\frac{f_0}{dh_l} Jac(\psi_l, topo)$$
 
 with $\psi_l$ and $q_l$ the stream function and vorticity in the lowest layer,
-$dh_l$ the thickness of the lowest layer and $h_{topo}$ the height of the topography.
+$dh_l$ the thickness of the lowest layer and $topo$ the height of the
+topography. There is a built-in bathtub
+topographic shape with shelfs at the sides and flat bottom in the middle of the
+domain. In the cross shelf direction, the equation of the shelf is
 
-There is a built-in bathtub topography with shelfs at the sides and flat bottom
-in the middle of the domain. In the cross shelf direction, the equation of the shelf is
+$$shelf(x) = 1 - exp \left(- \frac{x^2}{2 w_{topo}^2} \right)$$
 
-$$shelf = 1 - exp \left(- \frac{x^2}{2 w_{topo}^2} \right)$$
+with $w_{topo}$ the width of the shelf, and $x$ the cross shelf direction. The
+full topography is the product of the shelf shape at each side (north, south,
+east, west)
 
-with $w_{topo}$ the width of the shelf the height of the topography can be
-adjusted with the parameter ~h_topo~ and the width of the shelf can be adjsuted
-with the parameter ~w_topo~.
+$$topo = h_{topo} (1 - shelf(x_N).shelf(x_S).shelf(x_E).shelf(x_W))$$
+
+The height of the topography can be adjusted with the parameter ~h_topo~ and the
+width of the shelf can be adjsuted with the parameter ~w_topo~.
