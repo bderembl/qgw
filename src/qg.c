@@ -46,6 +46,7 @@ double pi = 3.141592653589793;
 // field variables
 double *psi;
 double *q;
+double *topo;
 
 // variable for printing out intermediate initialisation info
 int print = 1;
@@ -72,6 +73,8 @@ double f0 = 1.e-5;
 double bc_fac = 0.;
 double N2[nl_max] = {1.};
 double Ld = 0.;
+double h_topo = 0.;
+double w_topo = 1.;
 
 #define forcing_q(t) (-tau0/dh[0]*forc_mode*pi/Ly*sin(forc_mode*pi*Y[j]/Ly))
 
@@ -112,6 +115,8 @@ int main(int argc,char* argv[])
   params = list_append(params, &nu, "nu", "double");
   params = list_append(params, &N2, "N2", "array");
   params = list_append(params, &Ld, "Ld", "double");
+  params = list_append(params, &h_topo, "h_topo", "double");
+  params = list_append(params, &w_topo, "w_topo", "double");
   params = list_append(params, &bc_fac, "bc_fac", "double");
   params = list_append(params, &tend, "tend", "double");
   params = list_append(params, &dt_out, "dt_out", "double");
