@@ -99,12 +99,14 @@ void  init_vars(){
   psi  = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
   q    = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
   topo = calloc( Nxp1*Nyp1, sizeof( double ) );
+  omega = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
 
   for(int k = 0; k<nl; k++){
     for(int j = 0; j<Nyp1; j++){
       for(int i = 0;i <Nxp1; i++){
         q[idx(i,j,k)] = 0.;
         psi[idx(i,j,k)] = 0.;
+        omega[idx(i,j,k)] = 0.;
       }
     }
   }
