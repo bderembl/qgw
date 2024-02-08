@@ -234,7 +234,7 @@ void adjust_bc(double *q, double *psi, double *omega) {
         MPI_Send(&q[idx(0,id_so,k)], Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD); // South
         MPI_Send(&q[idx(0,id_no,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD); // North
             
-        // send/receive q
+        // send/receive omega
         MPI_Status  status3;
             
         // receive
