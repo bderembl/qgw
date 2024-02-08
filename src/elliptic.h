@@ -1,6 +1,8 @@
 /**
-   Invert elliptic equation
-    del^2 psi = q
+   PV related routines:
+
+   - Invert elliptic equation: del^2 psi + Gamma psi = q
+   - and compute relative vorticity: omega = del^2 psi
 
     TODO:
       - solve one direction with tridiagonal solver (Thomas algorithm)
@@ -42,7 +44,7 @@ void init_elliptic(){
   compute_eigmode();
 }
 
-void invert_pv(double *q, double *psi) {
+void invert_pv(double *q, double *psi, double *omega) {
 
   // reset psi. Temporary: only needed if doing FFT mode by mode
   for(int k = 0; k<nl; k++){
@@ -97,8 +99,18 @@ void invert_pv(double *q, double *psi) {
     }
   } // mode loop
 
+
+  // compute relative vorticity at interior points
+  for(int k = 0; k<nl; k++){
+    for(int j = 1; j<Ny; j++){
+      for(int i = 1;i <Nx; i++){
+        omega[idx(i,j,k)] = laplacian(psi);
+      }
+    }
+  }
+  
   // adjust boundary conditions
-  adjust_bc(q, psi);
+  adjust_bc(q, psi, omega);
 
 }
 

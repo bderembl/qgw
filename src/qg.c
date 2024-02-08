@@ -78,8 +78,6 @@ double Ld = 0.;
 double h_topo = 0.;
 double w_topo = 1.;
 
-#define forcing_q(t) (-tau0/dh[0]*forc_mode*pi/Ly*sin(forc_mode*pi*Y[j]/Ly))
-
 // Local header files
 
 #include "mpi_utils.h"
@@ -154,7 +152,7 @@ int main(int argc,char* argv[])
   // read q0 (restart)
   read_nc("restart.nc");
   // First inversion
-  invert_pv(q,psi);
+  invert_pv(q, psi, omega);
 
   // Initialize output
   char file_tmp[90];
@@ -175,7 +173,7 @@ int main(int argc,char* argv[])
     if (fabs (t - t_out) < TEPS*dt){
       
       t_out += dt_out;
-      invert_pv(q,psi);
+      invert_pv(q, psi, omega);
 
       // write output
       fprintf(stdout,"Write output, t = %e \n",t);
