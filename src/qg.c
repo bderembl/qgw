@@ -69,6 +69,7 @@ int it = 0;
 double beta = 0.;
 double nu = 0.;
 double nu_kin = 0.;
+double hEkb = 0.;
 double tau0 = 0.;
 double forc_mode = 1.0;
 double f0 = 1.e-5;
@@ -114,6 +115,7 @@ int main(int argc,char* argv[])
   params = list_append(params, &beta, "beta", "double");
   params = list_append(params, &nu, "nu", "double");
   params = list_append(params, &nu_kin, "nu_kin", "double");
+  params = list_append(params, &hEkb, "hEkb", "double");
   params = list_append(params, &N2, "N2", "array");
   params = list_append(params, &Ld, "Ld", "double");
   params = list_append(params, &h_topo, "h_topo", "double");
