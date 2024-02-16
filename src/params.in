@@ -19,9 +19,10 @@ N2 = [3e-05]
 # for 1.5 layer simulations (or in general the deformation radius of barotropic mode)
 Ld = 40000
 
-nu = 20000
+nu = 0
+nu_kin = 2000
 hEkb = 0
 
 # timestepping
 tend  =  1576800000000
-dt_out = 500000
+dt_out = 1000000

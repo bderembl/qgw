@@ -1,8 +1,36 @@
 
 /**
-   Domain related routines
+   Domain related routines and operators
    
 */
+
+
+/**
+   Operators
+*/
+
+#define laplacian(p) (p[idx(i+1,j,k)] + p[idx(i-1,j,k)] + p[idx(i,j+1,k)] + p[idx(i,j-1,k)] - 4*p[idx(i,j,k)])/(sq(Delta))
+
+#define jacobian(p,q) jacobian_lev(p,q,k,k)
+
+//jacobian_lev is jac(p[k1], q[k2])
+#define jacobian_lev(p,q,k1,k2) ((( p[idx(i+1,j,k1)]-p[idx(i-1,j,k1)])*(q[idx(i,j+1,k2)]-q[idx(i,j-1,k2)]) \
+                        +(p[idx(i,j-1,k1)]-p[idx(i,j+1,k1)])*(q[idx(i+1,j,k2)]-q[idx(i-1,j,k2)]) \
+                        + p[idx(i+1,j,k1)]*( q[idx(i+1,j+1,k2)] - q[idx(i+1,j-1,k2)])         \
+                        - p[idx(i-1,j,k1)]*( q[idx(i-1,j+1,k2)] - q[idx(i-1,j-1,k2)])         \
+                        - p[idx(i,j+1,k1)]*( q[idx(i+1,j+1,k2)] - q[idx(i-1,j+1,k2)])         \
+                        + p[idx(i,j-1,k1)]*( q[idx(i+1,j-1,k2)] - q[idx(i-1,j-1,k2)])         \
+                        + q[idx(i,j+1,k2)]*( p[idx(i+1,j+1,k1)] - p[idx(i-1,j+1,k1)])         \
+                        - q[idx(i,j-1,k2)]*( p[idx(i+1,j-1,k1)] - p[idx(i-1,j-1,k1)])         \
+                        - q[idx(i+1,j,k2)]*( p[idx(i+1,j+1,k1)] - p[idx(i+1,j-1,k1)])         \
+                        + q[idx(i-1,j,k2)]*( p[idx(i-1,j+1,k1)] - p[idx(i-1,j-1,k1)]))        \
+                       /(12.*Delta*Delta))
+
+#define beta_effect(p) (beta*(p[idx(i+1,j,k)] - p[idx(i-1,j,k)])/(2*Delta))
+
+
+// Forcing
+#define forcing_q(t) (-tau0/dh[0]*forc_mode*pi/Ly*sin(forc_mode*pi*Y[j]/Ly))
 
 // topographic shelf
 #define shelf(x,d) (1 - exp(-sq(x)/(2*sq(d))))
@@ -99,12 +127,14 @@ void  init_vars(){
   psi  = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
   q    = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
   topo = calloc( Nxp1*Nyp1, sizeof( double ) );
+  omega = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
 
   for(int k = 0; k<nl; k++){
     for(int j = 0; j<Nyp1; j++){
       for(int i = 0;i <Nxp1; i++){
         q[idx(i,j,k)] = 0.;
         psi[idx(i,j,k)] = 0.;
+        omega[idx(i,j,k)] = 0.;
       }
     }
   }
@@ -121,7 +151,7 @@ void  init_vars(){
 }
 
 
-void adjust_bc(double *q, double *psi) {
+void adjust_bc(double *q, double *psi, double *omega) {
 
 // first MPI inner communation and then physical domain BC
 
@@ -167,7 +197,19 @@ void adjust_bc(double *q, double *psi) {
         // receive
         MPI_Recv(&q[idx(0,Ny,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD, &status2); // North
         MPI_Recv(&q[idx(0,0,k)],  Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD, &status2); //South
-          
+         
+        // send/receive omega
+        MPI_Status  status3;
+            
+        // send
+        MPI_Send(&omega[idx(0,id_so,k)], Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD); // South 
+        MPI_Send(&omega[idx(0,id_no,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD); // North
+            
+        // receive
+        MPI_Recv(&omega[idx(0,Ny,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD, &status3); // North
+        MPI_Recv(&omega[idx(0,0,k)],  Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD, &status3); //South
+ 
+ 
       } else { // odd inner ranks (receive first)
             
         //send/receive psi
@@ -191,6 +233,17 @@ void adjust_bc(double *q, double *psi) {
         // send
         MPI_Send(&q[idx(0,id_so,k)], Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD); // South
         MPI_Send(&q[idx(0,id_no,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD); // North
+            
+        // send/receive omega
+        MPI_Status  status3;
+            
+        // receive
+        MPI_Recv(&omega[idx(0,Ny,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD, &status3); // North
+        MPI_Recv(&omega[idx(0,0,k)],  Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD, &status3); //South
+            
+        // send
+        MPI_Send(&omega[idx(0,id_so,k)], Nxp1, MPI_DOUBLE, rank_m1, 0, MPI_COMM_WORLD); // South
+        MPI_Send(&omega[idx(0,id_no,k)], Nxp1, MPI_DOUBLE, rank_p1, 0, MPI_COMM_WORLD); // North
           
       }
     }
@@ -202,29 +255,38 @@ void adjust_bc(double *q, double *psi) {
   for(int k = 0; k<nl; k++){
       // South
 #ifdef _MPI
-    if (rank == 0)
+    if (rank == 0){
 #endif
       for(int i = 0; i <Nxp1; i++){
         int j = 0;
         psi[idx(i,j,k)] = psi_bc;
-        q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j+1,k)] - psi_bc);;
+        q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j+1,k)] - psi_bc);
+        omega[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j+1,k)] - psi_bc);;
       }
+#ifdef _MPI
+    }
+#endif
 
       // North
 #ifdef _MPI
-    if (rank == rank_crit)
+    if (rank == rank_crit){
 #endif
       for(int i = 0; i <Nxp1; i++){
         int j = Ny;
         psi[idx(i,j,k)] = psi_bc;
         q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j-1,k)] - psi_bc);
+        omega[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j-1,k)] - psi_bc);
       }
+#ifdef _MPI
+    }
+#endif
     
       // West
       for(int j = 0; j <Nyp1; j++){
         int i = 0;
         psi[idx(i,j,k)] = psi_bc;
         q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i+1,j,k)] - psi_bc);
+        omega[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i+1,j,k)] - psi_bc);
       }
     
       // East
@@ -232,6 +294,7 @@ void adjust_bc(double *q, double *psi) {
         int i = Nx;
         psi[idx(i,j,k)] = psi_bc;
         q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i-1,j,k)] - psi_bc);
+        omega[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i-1,j,k)] - psi_bc);
       }
   }
 

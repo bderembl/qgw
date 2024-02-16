@@ -40,7 +40,11 @@ $$ -\frac{tau0}{dh[0]} forc_mode \frac{\pi}{Ly} sin\left(forc_mode \pi \frac{y}{
 
   On the beta plane, the Coriolis parameter is $f =f_0 + \beta y$
 
-- nu: harmonic viscosity
+- nu: harmonic viscosity to diffuse q
+
+- nu_kin: harmonic viscosity to diffuse omega
+
+- hEkb: thickness of the bottom Ekman layer in m.
 
 - N2: Brunt Vaisalla frequency at layer interface [N^2] = s$^{-2}$. e.g. for a 3 layer configuration N2 = [4e-05, 6e-06]
 

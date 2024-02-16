@@ -20,12 +20,14 @@ void check_timestep(){
       decreases it if necessary.
   */
   
-  if (beta != 0 && nu != 0) {
-    DT_max = min(1/(2.*beta*Lx),sq(Lx/Nx)/nu/20.);
-  } else if (beta != 0 && nu == 0) {
+  double nu_eff = max(nu,nu_kin);
+
+  if (beta != 0 && nu_eff != 0) {
+    DT_max = min(1/(2.*beta*Lx),sq(Lx/Nx)/nu_eff/20.);
+  } else if (beta != 0 && nu_eff == 0) {
     DT_max = 1/(2.*beta*Lx);
-  } else if (beta == 0 && nu != 0) {
-    DT_max = sq(Lx/Nx)/nu/20.;
+  } else if (beta == 0 && nu_eff != 0) {
+    DT_max = sq(Lx/Nx)/nu_eff/20.;
   }
 
   /**
