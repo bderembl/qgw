@@ -52,13 +52,21 @@ double *Y;
 // Fourier Coefficients
 double *K;
 double *L;
+int N_c;
 
 // grid indices
 #define idx(i,j,k) (k)*Nxp1*Nyp1 + (j)*Nxp1 + (i)
 
 void init_domain() {
-
-  Delta = Lx/NX;
+  
+  // In the periodic case we have one more grid point
+  if (bc_fac == -1) {
+    // If periodic, then the zero of X and Y is at the second grid point
+    Delta = Lx/(NX-1);
+  } else {
+    Delta = Lx/NX;
+  }
+  
   Ly = NY*Delta;
 
   /**
@@ -80,7 +88,10 @@ void init_domain() {
   NXp1 = NX + 1;
   NYp1 = NY + 1;
 
+  N_c = Nxm1/2 +1;
+
   J0 = 0;
+  I0 = 0;
 
 #ifdef _MPI
   int blocksize;
@@ -98,13 +109,18 @@ void init_domain() {
   Nyp1 = local_n0 + 2;
 #endif
 
+  if (bc_fac == -1) {
+    // If periodic, then the zero of X and Y is at the second grid point
+    J0 = J0-1;
+    I0 = I0-1;
+  }
 
   // Coordinates in real space
   X = calloc( Nxp1, sizeof( double ) );
   Y = calloc( Nyp1, sizeof( double ) );
 
   for(int i = 0; i <Nxp1; i++)
-    X[i] = i*Delta;
+    X[i] = (i + I0)*Delta;
   for(int j = 0; j<Nyp1; j++)
     Y[j] = (j + J0)*Delta;
 
@@ -113,12 +129,19 @@ void init_domain() {
   L = calloc( Nxp1, sizeof( double ) );
   K = calloc( Nyp1, sizeof( double ) );
 
-  for(int i = 1; i <Nx; i++)
-    L[i] = pi*(i)/Lx;
+  if (bc_fac == -1) {
+    for(int j = 0; j<Ny; j++)
+      K[j] = fmodf(2*pi*(j)/Lx + 2*pi*Nxm1/(2*Lx), 2*pi*Nxm1/Lx) - 2*pi*Nxm1/(2*Lx);
+    for(int i = 0; i <Nx; i++)
+      L[i] = 2*pi*(i)/Lx;
 
-  for(int j = 1; j<Ny; j++)
-    K[j] = pi*(j + J0)/Ly;
+  } else {
+    for(int j = 1; j<Ny; j++)
+      K[j] = pi*(j + J0)/Lx;
+    for(int i = 1; i <Nx; i++)
+      L[i] = pi*(i + I0)/Lx;
 
+  }
 }
 
 void  init_vars(){
@@ -153,7 +176,48 @@ void  init_vars(){
 
 void adjust_bc(double *q, double *psi, double *omega) {
 
-// first MPI inner communation and then physical domain BC
+  // first periodic boundary conditions, then MPI communication and then physical domain BC
+
+  if (bc_fac == -1) { // periodic boundary conditions
+
+    for(int k = 0; k<nl; k++){
+      // South
+      for(int i = 0; i <Nxp1; i++){
+        int j1 = 0;
+        int j2 = Nym1;
+        psi[idx(i,j1,k)] = psi[idx(i,j2,k)];
+        q[idx(i,j1,k)] = q[idx(i,j2,k)];
+        omega[idx(i,j1,k)] = omega[idx(i,j2,k)];
+      }
+
+      // North
+      for(int i = 0; i <Nxp1; i++){
+        int j1 = Ny;
+        int j2 = 1;
+        psi[idx(i,j1,k)] = psi[idx(i,j2,k)];
+        q[idx(i,j1,k)] = q[idx(i,j2,k)];
+        omega[idx(i,j1,k)] = omega[idx(i,j2,k)];
+      }
+    
+      // West
+      for(int j = 0; j <Nyp1; j++){
+        int i1 = 0;
+        int i2 = Nxm1;
+        psi[idx(i1,j,k)] = psi[idx(i2,j,k)];
+        q[idx(i1,j,k)] = q[idx(i2,j,k)];
+        omega[idx(i1,j,k)] = omega[idx(i2,j,k)];
+      }
+    
+      // East
+      for(int j = 0; j <Nyp1; j++){
+        int i1 = Nx;
+        int i2 = 1;
+        psi[idx(i1,j,k)] = psi[idx(i2,j,k)];
+        q[idx(i1,j,k)] = q[idx(i2,j,k)];
+        omega[idx(i1,j,k)] = omega[idx(i2,j,k)];
+      }
+    }
+  }
 
 #ifdef _MPI
 
@@ -250,54 +314,53 @@ void adjust_bc(double *q, double *psi, double *omega) {
   }
 #endif
 
-  double psi_bc = 0.;
+  if (bc_fac != -1) {
+    double psi_bc = 0.;
 
-  for(int k = 0; k<nl; k++){
-      // South
-#ifdef _MPI
-    if (rank == 0){
-#endif
-      for(int i = 0; i <Nxp1; i++){
-        int j = 0;
-        psi[idx(i,j,k)] = psi_bc;
-        q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j+1,k)] - psi_bc);
-        omega[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j+1,k)] - psi_bc);;
+    for(int k = 0; k<nl; k++){
+        // South
+  #ifdef _MPI
+      if (rank == 0){
+  #endif
+        for(int i = 0; i <Nxp1; i++){
+          int j = 0;
+          psi[idx(i,j,k)] = psi_bc;
+          q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j+1,k)] - psi_bc);
+          omega[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j+1,k)] - psi_bc);
+        }
+  #ifdef _MPI
       }
-#ifdef _MPI
-    }
-#endif
+  #endif
 
-      // North
-#ifdef _MPI
-    if (rank == rank_crit){
-#endif
-      for(int i = 0; i <Nxp1; i++){
-        int j = Ny;
-        psi[idx(i,j,k)] = psi_bc;
-        q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j-1,k)] - psi_bc);
-        omega[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j-1,k)] - psi_bc);
+        // North
+  #ifdef _MPI
+      if (rank == rank_crit){
+  #endif
+        for(int i = 0; i <Nxp1; i++){
+          int j = Ny;
+          psi[idx(i,j,k)] = psi_bc;
+          q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j-1,k)] - psi_bc);
+          omega[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i,j-1,k)] - psi_bc);
+        }
+  #ifdef _MPI
       }
-#ifdef _MPI
+  #endif
+      
+        // West
+        for(int j = 0; j <Nyp1; j++){
+          int i = 0;
+          psi[idx(i,j,k)] = psi_bc;
+          q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i+1,j,k)] - psi_bc);
+          omega[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i+1,j,k)] - psi_bc);
+        }
+      
+        // East
+        for(int j = 0; j <Nyp1; j++){
+          int i = Nx;
+          psi[idx(i,j,k)] = psi_bc;
+          q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i-1,j,k)] - psi_bc);
+          omega[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i-1,j,k)] - psi_bc);
+        }
     }
-#endif
-    
-      // West
-      for(int j = 0; j <Nyp1; j++){
-        int i = 0;
-        psi[idx(i,j,k)] = psi_bc;
-        q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i+1,j,k)] - psi_bc);
-        omega[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i+1,j,k)] - psi_bc);
-      }
-    
-      // East
-      for(int j = 0; j <Nyp1; j++){
-        int i = Nx;
-        psi[idx(i,j,k)] = psi_bc;
-        q[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i-1,j,k)] - psi_bc);
-        omega[idx(i,j,k)] = 2*bc_fac/sq(Delta)*(psi[idx(i-1,j,k)] - psi_bc);
-      }
   }
-
-
-
 }

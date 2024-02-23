@@ -28,8 +28,27 @@ int nc_varid[1000];
 char * nc_varname[1000];
 int nc_rec = -1;
 
+// output indices for periodic/bounded simulations
+int out_start;
+int out_end;
+int Out_end;
+int N_Out;
+int N_out;
+
 void create_nc(char* file_out)
 {
+   if (bc_fac == -1) { // indices for output of array for periodic/bounded BCs
+    out_start = 1;
+    out_end = Ny;
+    Out_end = NY;
+   } else {
+    out_start = 0;
+    out_end = Nyp1;
+    Out_end = NYp1;
+   }
+
+   N_Out = Out_end - out_start;
+   N_out = out_end - out_start;
 
    sprintf (file_nc,"%s", file_out);
    if (pid() == 0) { // master
@@ -52,9 +71,9 @@ void create_nc(char* file_out)
    if ((nc_err = nc_def_dim(ncid, LVL_NAME, nl, &lvl_dimid)))
       ERR(nc_err);
 #endif
-   if ((nc_err = nc_def_dim(ncid, Y_NAME, NYp1, &y_dimid)))
+   if ((nc_err = nc_def_dim(ncid, Y_NAME, N_Out, &y_dimid)))
       ERR(nc_err);
-   if ((nc_err = nc_def_dim(ncid, X_NAME, NXp1, &x_dimid)))
+   if ((nc_err = nc_def_dim(ncid, X_NAME, N_Out, &x_dimid)))
       ERR(nc_err);
 
    /* Define the coordinate variables. We will only define coordinate
@@ -116,11 +135,11 @@ void create_nc(char* file_out)
       ERR(nc_err);
 
    /*  write coordinates*/
-   float yc[NY+1], xc[NX+1];
-   for (int i = 0; i < NX+1; i++){
+   float yc[N_Out], xc[N_Out];
+   for (int i = 0; i < N_Out + 1; i++){
       xc[i] = i*Delta;
    }
-   for (int i = 0; i < NY+1; i++){
+   for (int i = 0; i < N_Out + 1; i++){
       yc[i] = i*Delta;
    }
 
@@ -175,7 +194,7 @@ void write_nc() {
 
 
 
-  float * field = (float *)malloc(NXp1*NYp1*nl*sizeof(float));
+  float * field = (float *)malloc(N_Out*N_Out*nl*sizeof(float));
 
 //  float ** field = matrix_new (N_out, N_out, sizeof(float));
   
@@ -201,20 +220,20 @@ void write_nc() {
   count[0] = 1;
 #if LAYERS
   count[1] = nl;
-  count[2] = NYp1;
-  count[3] = NXp1;
+  count[2] = N_Out;
+  count[3] = N_Out;
 #else
-  count[1] = NYp1;
-  count[2] = NXp1;
+  count[1] = N_Out;
+  count[2] = N_Out;
 #endif  
 
   for (int iv = 0; iv < list_nc[0].len; iv++){
 
       // TODO: FOR MPI
       for (int k = 0; k < nl; k++) {
-        for (int j = 0; j < NYp1; j++) {
-          for (int i = 0; i < NXp1; i++) {
-            field[NYp1*NXp1*k + NXp1*j + i] = nodata; // for MPI
+        for (int j = 0; j < N_Out; j++) {
+          for (int i = 0; i < N_Out; i++) {
+            field[N_Out*N_Out*k + N_Out*j + i] = nodata; // for MPI
   //          field[Nyp1*Nxp1*k + Nxp1*j + i] = 0.;
           }
         }
@@ -227,9 +246,9 @@ void write_nc() {
 #endif
 
       for (int k = 0; k < nl; k++) {
-        for (int j = 0; j < Nyp1; j++) {
-          for (int i = 0; i < Nxp1; i++) {
-            field[NYp1*NXp1*k + NXp1*(j + J0) + i] = data_loc[idx(i,j,k)];
+        for (int j = out_start; j < out_end; j++) {
+          for (int i = out_start; i < Out_end; i++) {
+            field[N_Out*N_Out*k + N_Out*(j + J0) + (i + I0)] = data_loc[idx(i,j,k)];
           }
         }
       }

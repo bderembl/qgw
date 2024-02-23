@@ -34,9 +34,18 @@ void check_timestep(){
      Adjusts dt with forcing
      U ~ forcing*dt*L
      dt = sqrt(cfl*Delta/forcing*L)
+     or stochastic forcing
+     U ~ sqrt(sigma*dt)
+     dt = (cfl^2*Delta^2/sigma)^(1/3)
    */
 
-  dt = 1e-3*sqrt(cfl*Delta/(tau0/dh[0]*forc_mode*pi/Ly*Ly));
+  if (tau0 != 0 && sigma_f != 0) {
+    dt = 1e-3*min(sqrt(cfl*Delta/(tau0/dh[0]*forc_mode*pi/Ly*Ly)) , pow(sq(Delta*cfl)/sigma_f, 1./3.));
+  } else if (tau0 != 0 && sigma_f == 0) {
+    dt = 1e-3*sqrt(cfl*Delta/(tau0/dh[0]*forc_mode*pi/Ly*Ly));
+  } else if (tau0 == 0 && sigma_f != 0) {
+    dt = 1e-3*pow(sq(Delta*cfl)/sigma_f, 1./3.);
+  }
 
   if (DT_max != 0 && dt > DT_max) {
     dt = DT_max; 
@@ -140,7 +149,7 @@ void timestep(double * q){
     calc_forc();
     for (int j = 1; j < Ny; j++){
       for (int i = 1; i < Nx; i++){
-        q[idx(i,j)] += forc[idx(i,j)]*sqrt(dt);
+        q[idx(i,j,0)] += forc[idx(i,j,0)]*sqrt(dt);
       }
   }
   #endif
