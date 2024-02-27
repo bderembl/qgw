@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <fftw3.h>
+#include <unistd.h>
 
 #ifdef _MPI
   #include <mpi.h>
@@ -48,6 +49,10 @@ double *psi;
 double *q;
 double *topo;
 double *omega;
+
+// debug outputs
+double *wrk2_complex;
+double *wrk2_real;
 
 // variable for printing out intermediate initialisation info
 int print = 1;
@@ -97,6 +102,12 @@ List *params;
 int main(int argc,char* argv[])
 {
 
+  // {
+  //       int i=0;
+  //       while (0 == i)
+  //           sleep(5);
+  //   }
+  
   init_mpi();
 
   /**
@@ -162,6 +173,9 @@ int main(int argc,char* argv[])
 
   list_nc = list_append(list_nc, psi,"psi", "double");
   list_nc = list_append(list_nc, q, "q", "double");
+  list_nc = list_append(list_nc, omega, "omega", "double");
+  list_nc = list_append(list_nc, wrk2_real, "wrk2_real", "double");
+  list_nc = list_append(list_nc, wrk2_complex, "wrk2_complex", "double");
   create_nc(file_tmp);
 
   /**
@@ -175,16 +189,22 @@ int main(int argc,char* argv[])
     if (fabs (t - t_out) < TEPS*dt){
       
       t_out += dt_out;
-      invert_pv(q, psi, omega);
+      // invert_pv(q, psi, omega);
 
-      // write output
-      fprintf(stdout,"Write output, t = %e \n",t);
-      write_nc();
+      // // write output
+      // fprintf(stdout,"Write output, t = %e \n",t);
+      // write_nc();
 
     }
 
     timestep(q);
     it ++;
+
+    invert_pv(q, psi, omega);
+
+    // write output
+    fprintf(stdout,"Write output, t = %e \n",t);
+    write_nc();
   }
 
  

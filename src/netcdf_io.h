@@ -256,7 +256,7 @@ void write_nc() {
     if (pid() == 0) { // master
 
 #if _MPI
-      MPI_Reduce (MPI_IN_PLACE, &field[0], NXp1*NYp1*nl, MPI_FLOAT, MPI_MIN, 0,MPI_COMM_WORLD);
+      MPI_Reduce (MPI_IN_PLACE, &field[0], N_Out*N_Out*nl, MPI_FLOAT, MPI_MIN, 0,MPI_COMM_WORLD);
 #endif
 
       if ((nc_err = nc_put_vara_float(ncid, nc_varid[iv], start, count,
@@ -265,7 +265,7 @@ void write_nc() {
   } // master
 #if _MPI
   else // slave
-  MPI_Reduce (&field[0], NULL, NXp1*NYp1*nl, MPI_FLOAT, MPI_MIN, 0,MPI_COMM_WORLD);
+  MPI_Reduce (&field[0], NULL, N_Out*N_Out*nl, MPI_FLOAT, MPI_MIN, 0,MPI_COMM_WORLD);
 #endif
   }
   free(field);

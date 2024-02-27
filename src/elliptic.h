@@ -19,42 +19,39 @@ double norm;
 
 #include "eigmode.h"
 
-#define idx_fft(i,j) (j-1)*Nxm1 + (i-1)
-#define idx_fft2(i,j) (i)*N_c + (j)
+#define idx_fft(i,j) (j-1)*N_fft + (i-1)
+
+#ifdef _MPI
+  #define idx_fft2(i,j) (i)*(2*Nxm1) + 2*(j)
+#else
+  #define idx_fft2(i,j) (j)*Nxp1 + 2*(i)
+#endif
 
 void init_elliptic(){
-
-  ptrdiff_t alloc_local = Nxm1*Nym1;
-  wrk1 = fftw_alloc_real(alloc_local);
 
   /* create FFT plans */
   if (bc_fac == -1) { // periodic
 
-    norm = Nxm1*NYm1;
+    N_fft = Nxp1;
+    norm = NXm1*NYm1;
 
-    ptrdiff_t alloc_local = Nxm1*Nym1;
-    wrk1 = fftw_alloc_real(alloc_local);
-
-    ptrdiff_t alloc_complex = Nxm1*(Nym1/2+1);
-    wrk2 = fftw_alloc_complex(alloc_complex);
-
+    wrk1 = fftw_alloc_real(2*alloc_local);
+  
     #ifdef _MPI
-      transfo_direct = fftw_mpi_plan_r2r_2d(NYm1, NXm1, wrk1, wrk1, MPI_COMM_WORLD,
-                                            FFTW_RODFT00, FFTW_RODFT00,
+      transfo_direct = fftw_mpi_plan_dft_r2c_2d(NYm1, NXm1, wrk1, wrk1, MPI_COMM_WORLD,
                                             FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_OUT);
-      transfo_inverse = fftw_mpi_plan_r2r_2d(NYm1, NXm1, wrk1, wrk1, MPI_COMM_WORLD,
-                                            FFTW_RODFT00, FFTW_RODFT00, 
+      transfo_inverse = fftw_mpi_plan_dft_c2r_2d(NYm1, NXm1, wrk1, wrk1, MPI_COMM_WORLD,
                                             FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
     #else
-      transfo_direct  = fftw_plan_dft_r2c_2d(Nxm1, Nym1, wrk1, wrk2, FFTW_EXHAUSTIVE);
-      transfo_inverse = fftw_plan_dft_c2r_2d(Nxm1, Nym1, wrk2, wrk1, FFTW_EXHAUSTIVE);
+      transfo_direct  = fftw_plan_dft_r2c_2d(Nxm1, Nym1, wrk1, wrk1, FFTW_EXHAUSTIVE);
+      transfo_inverse = fftw_plan_dft_c2r_2d(Nxm1, Nym1, wrk1, wrk1, FFTW_EXHAUSTIVE);
     #endif
   } else {
 
+    N_fft = Nxm1;
     norm = 4*NX*NY;
 
-    //ptrdiff_t alloc_local = Nxm1*Nym1;
-    wrk1 = calloc( Nxm1*Nym1, sizeof( double ) ); // fftw_alloc_real(alloc_local)
+    wrk1 = fftw_alloc_real(alloc_local);
 
     #ifdef _MPI
       transfo_direct = fftw_mpi_plan_r2r_2d(NYm1, NXm1, wrk1, wrk1, MPI_COMM_WORLD,
@@ -90,7 +87,7 @@ void invert_pv(double *q, double *psi, double *omega) {
   
   // loop on modes
   for(int k = 0; k<nl; k++){
-    
+  
     for(int j = 1; j<Ny; j++){
       for(int i = 1; i <Nx; i++){
         wrk1[idx_fft(i,j)] = 0;
@@ -100,25 +97,29 @@ void invert_pv(double *q, double *psi, double *omega) {
         }
       }
     }
-    
+
     // direct transform
     fftw_execute(transfo_direct);
-    
-    if (bc_fac == -1) {// solve elliptic in fourrier space
-      for(int j = 0; j < N_c; j++){ // f = -g / ( kx^2 + ky^2 + 1/Rd^2)
-        for (int i = 0; i < Nxm1; i++){
+
+    if (bc_fac == -1){ // periodic boundary conditions
+
+      for(int j = 0; j < Nxm1; j++){
+        for (int i = 0; i < Nk; i++){
           double fact = - (sq(L[j]) + sq(K[i]) + iRd2[k]);
           if (fact != 0){
-            wrk2[idx_fft2(i,j)][0] = wrk2[idx_fft2(i,j)][0]/fact;
-            wrk2[idx_fft2(i,j)][1] = wrk2[idx_fft2(i,j)][1]/fact;
+            wrk1[idx_fft2(i,j)] = wrk1[idx_fft2(i,j)]/fact;
+            wrk1[idx_fft2(i,j) + 1] = wrk1[idx_fft2(i,j) + 1]/fact;
           }
         }
       }
 
-      wrk2[idx_fft2(0,0)][0] = 0;
-      wrk2[idx_fft2(0,0)][1] = 0;
+      if (rank == 0) {
+        wrk1[0] = 0;
+        wrk1[1] = 0;
+      }
 
-    } else {
+    } else { // bounded conditions
+
       for(int j = 1; j < Ny; j++){ // f = -g / ( kx^2 + ky^2 + 1/Rd^2)
         for (int i = 1; i < Nx; i++){
           double fact = - (sq(L[i]) + sq(K[j]) + iRd2[k]);
@@ -126,10 +127,10 @@ void invert_pv(double *q, double *psi, double *omega) {
         }
       }
     }
-    
+
     // inverse transform
     fftw_execute(transfo_inverse);
-
+    
     // Normalisation
     for(int j = 1; j<Ny; j++){
       for(int i = 1;i <Nx; i++){
@@ -148,23 +149,20 @@ void invert_pv(double *q, double *psi, double *omega) {
   } // mode loop
 
   // adjust boundary conditions
-  adjust_bc(q, psi, omega);
+  adjust_bc(q, psi);
 
-  // compute relative vorticity at interior points
-  for(int k = 0; k<nl; k++){
-    for(int j = 1; j<Ny; j++){
-      for(int i = 1;i <Nx; i++){
-        omega[idx(i,j,k)] = laplacian(psi);
-      }
-    }
-  }
+  // calculate omega
+  calc_omega(psi, omega);
 
 }
 
 void clean_fft(){
 
   fftw_free(wrk1);
-
+  if (bc_fac == -1){
+    fftw_free(wrk2);
+  }
+  
   fftw_destroy_plan(transfo_direct); 
   fftw_destroy_plan(transfo_inverse);
 
