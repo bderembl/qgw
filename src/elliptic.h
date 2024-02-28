@@ -11,7 +11,6 @@
 
 // FFTW in/outputs and plans
 double *wrk1;
-fftw_complex *wrk2;
 fftw_plan transfo_direct, transfo_inverse;
 
 // normalisation factor
@@ -159,9 +158,6 @@ void invert_pv(double *q, double *psi, double *omega) {
 void clean_fft(){
 
   fftw_free(wrk1);
-  if (bc_fac == -1){
-    fftw_free(wrk2);
-  }
   
   fftw_destroy_plan(transfo_direct); 
   fftw_destroy_plan(transfo_inverse);

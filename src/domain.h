@@ -102,8 +102,8 @@ void init_domain() {
   alloc_local = Nxm1*Nym1;
 
 #ifdef _MPI
-  int blocksize;
-  blocksize = ceil((double)NYm1/n_ranks);
+
+  int blocksize = ceil((double)NYm1/n_ranks);
   rank_crit = ceil((double)NYm1/blocksize)-1;
   
 
@@ -123,6 +123,7 @@ void init_domain() {
                                         &local_n1, &local_1_start);
     K0 = local_1_start;
     Nk = local_n1;
+    
   } else {
     
     /* get local data size and allocate */
@@ -134,6 +135,8 @@ void init_domain() {
     Ny = local_n0 + 1;
     Nym1 = local_n0;
     Nyp1 = local_n0 + 2;
+
+    Nk = Nym1;
   }
 #endif
 
@@ -151,7 +154,6 @@ void init_domain() {
     X[i] = (i + I0)*Delta;
   for(int j = 0; j<Nyp1; j++)
     Y[j] = (j + J0)*Delta;
-
 
   // Coordinates in spectral space
   L = calloc( Nxp1, sizeof( double ) );
@@ -174,10 +176,6 @@ void init_domain() {
 
 void  init_vars(){
 
-  // debug variables
-  wrk2_complex  = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
-  wrk2_real    = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
-
   psi  = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
   q    = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
   topo = calloc( Nxp1*Nyp1, sizeof( double ) );
@@ -189,10 +187,6 @@ void  init_vars(){
         q[idx(i,j,k)] = 0.;
         psi[idx(i,j,k)] = 0.;
         omega[idx(i,j,k)] = 0.;
-
-        //debug 
-        wrk2_real[idx(i,j,k)] = 0.;
-        wrk2_complex[idx(i,j,k)] = 0.;
       }
     }
   }
