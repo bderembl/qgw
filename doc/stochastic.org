@@ -88,7 +88,7 @@ $$\sigma^2 \int_0^{K_{max}}\frac{\vert f(K)\vert^2}{4\pi K \delta k^2} dK = \sig
 
 From this condition we then get the shape of $f$, namely
 
-$$\sqrt{\sqrt{4 \pi K^2 \delta k} e^{- \frac{\vert K - k_f\vert^2 }{2 \delta k^2}}}$$
+$$\sqrt{\sqrt{8 \pi K^2 \delta k} e^{- \frac{\vert K - k_f\vert^2 }{2 \delta k^2}}}$$
 
 This shape corresponds to a forcing which is localised at $K = k_f$ with a spectral width of $\delta k = 1/L$. 
 
