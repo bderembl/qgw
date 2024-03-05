@@ -72,7 +72,7 @@ $$\psi = \frac{1}{\delta k \delta l}\Sigma \widehat{\psi} \ e^{i2\pi (kx + ly)} 
 
 From this we compute the domain-averaged energy as
 
-$$\frac{1}{L^2}\int\int \vert \nabla \psi \vert^2 dA = -\int\int\frac{(2\pi)^2(k^2 + l^2)}{\delta k^2}\vert \widehat{\psi}\vert^2 dk \ dl$$
+$$\frac{1}{L^2}\int\int \frac{\vert \nabla \psi \vert^2}{2} dA = -\int\int\frac{(2\pi)^2(k^2 + l^2)}{2\delta k^2}\vert \widehat{\psi}\vert^2 dk \ dl$$
 
 Now that we know the expression of the energy in spectral space, we return to the evolution equation of $\psi$ in spectral space to see how our forcing must be shaped and normalised. After transforming the dynamical equation we obtain
 
@@ -80,15 +80,15 @@ $$-(2\pi)^2(k^2 + l^2)\delta \psi = ... \ + \ \sigma f(K) \delta W,$$
 
 where $\delta W$ denotes the Wiener process. To me it is easier to write this thing as $N(0,1)e^{i\phi}\sqrt{\delta t}$, i.e. at each time step we draw from a normal distribution $N$ with standart deviation $1$, multiply the result by a random phase $\phi$ and multiply it by $\delta t$. To obtain an integrable energy equation from this we take the magnitude and square both sides of this equation. After integration and division by $\delta t$ we recognise the left side as the time derivative of the energy, which is then equal to
 
-$$\int\int\frac{(2\pi)^2(k^2 + l^2)}{\delta k^2}\frac{\delta \widehat{\psi}^2}{\delta t} dk \ dl \sim \frac{\partial E}{\partial t} = \int\int \frac{\sigma^2 \vert f(K)\vert^2}{(2\pi)^2 K^2 \delta k^2}dk \ dl$$
+$$\int\int\frac{(2\pi)^2(k^2 + l^2)}{2\delta k^2}\frac{\delta \widehat{\psi}^2}{\delta t} dk \ dl \sim \frac{\partial E}{\partial t} = \int\int \frac{\sigma^2 \vert f(K)\vert^2}{2(2\pi)^2 K^2 \delta k^2}dk \ dl$$
 
 where $K = \sqrt{k^2 + l^2}$. We now transform to polar coordinates and try to evaluate this integral. We would like to choose a function $f$ for the integral to just give $\sigma^2$, as this is the value of the energy injection we would like to control. This is done easiest when the entire integrant is equal to a normalised Gaussian function centered on $k_f$, the forcing wavelength. If the gaussian is centered on a $k_f$ which is far away from both $0$ and $k_{max} = 1/2L$ and it falls off fast enough for its tails not to touch those boundaries, the value of the integral over the finite domain $[0, K_{max}]$ will be the same as from $[-\infty, \infty)$, i.e. 1.
 
-$$\sigma^2 \int_0^{K_{max}}\frac{\sigma^2 \vert f(K)\vert^2}{2\pi K \delta k^2} dK = \sigma^2 \int_{-\infty}^{\infty}\frac{1}{\delta k \sqrt{2\pi}} e^{-\frac{(K - k_f)^2}{2\delta k}} dK = \sigma^2$$
+$$\sigma^2 \int_0^{K_{max}}\frac{\vert f(K)\vert^2}{4\pi K \delta k^2} dK = \sigma^2 \int_{-\infty}^{\infty}\frac{1}{\delta k \sqrt{2\pi}} e^{-\frac{(K - k_f)^2}{2\delta k}} dK = \sigma^2$$
 
 From this condition we then get the shape of $f$, namely
 
-$$\sqrt{\sqrt{2 \pi K^2 \delta k} e^{- \frac{\vert K - k_f\vert^2 }{2 \delta k^2}}}$$
+$$\sqrt{\sqrt{4 \pi K^2 \delta k} e^{- \frac{\vert K - k_f\vert^2 }{2 \delta k^2}}}$$
 
 This shape corresponds to a forcing which is localised at $K = k_f$ with a spectral width of $\delta k = 1/L$. 
 
