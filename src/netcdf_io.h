@@ -28,27 +28,28 @@ int nc_varid[1000];
 char * nc_varname[1000];
 int nc_rec = -1;
 
-// output indices for periodic/bounded simulations
-int out_start;
-int out_end;
-int Out_end;
-int N_Out;
-int N_out;
+/* // output indices for periodic/bounded simulations */
+/* int out_start; */
+/* int out_end; */
+/* int Out_end; */
+
+int NX_Out;
+int NY_Out;
+
+// flag to remove boundary points in periodic domains
+int ibc = 0;
 
 void create_nc(char* file_out)
 {
-   if (bc_fac == -1) { // indices for output of array for periodic/bounded BCs
-    out_start = 1;
-    out_end = Ny;
-    Out_end = NY;
-   } else {
-    out_start = 0;
-    out_end = Nyp1;
-    Out_end = NYp1;
+
+  // periodic: remove one point in all directions in output
+   if (bc_fac == -1) {
+     ibc = 1;
    }
 
-   N_Out = Out_end - out_start;
-   N_out = out_end - out_start;
+   NX_Out = NXp1 - 2*ibc;
+   NY_Out = NYp1 - 2*ibc;
+
 
    sprintf (file_nc,"%s", file_out);
    if (pid() == 0) { // master
@@ -71,9 +72,9 @@ void create_nc(char* file_out)
    if ((nc_err = nc_def_dim(ncid, LVL_NAME, nl, &lvl_dimid)))
       ERR(nc_err);
 #endif
-   if ((nc_err = nc_def_dim(ncid, Y_NAME, N_Out, &y_dimid)))
+   if ((nc_err = nc_def_dim(ncid, Y_NAME, NY_Out, &y_dimid)))
       ERR(nc_err);
-   if ((nc_err = nc_def_dim(ncid, X_NAME, N_Out, &x_dimid)))
+   if ((nc_err = nc_def_dim(ncid, X_NAME, NX_Out, &x_dimid)))
       ERR(nc_err);
 
    /* Define the coordinate variables. We will only define coordinate
@@ -135,11 +136,11 @@ void create_nc(char* file_out)
       ERR(nc_err);
 
    /*  write coordinates*/
-   float yc[N_Out], xc[N_Out];
-   for (int i = 0; i < N_Out + 1; i++){
+   float yc[NY_Out], xc[NX_Out];
+   for (int i = 0; i < NX_Out; i++){
       xc[i] = i*Delta;
    }
-   for (int i = 0; i < N_Out + 1; i++){
+   for (int i = 0; i < NY_Out; i++){
       yc[i] = i*Delta;
    }
 
@@ -194,9 +195,8 @@ void write_nc() {
 
 
 
-  float * field = (float *)malloc(N_Out*N_Out*nl*sizeof(float));
+  float * field = (float *)malloc(NX_Out*NY_Out*nl*sizeof(float));
 
-//  float ** field = matrix_new (N_out, N_out, sizeof(float));
   
   /* The start and count arrays will tell the netCDF library where to
      write our data. */
@@ -220,20 +220,19 @@ void write_nc() {
   count[0] = 1;
 #if LAYERS
   count[1] = nl;
-  count[2] = N_Out;
-  count[3] = N_Out;
+  count[2] = NY_Out;
+  count[3] = NX_Out;
 #else
-  count[1] = N_Out;
-  count[2] = N_Out;
+  count[1] = NY_Out;
+  count[2] = NX_Out;
 #endif  
 
   for (int iv = 0; iv < list_nc[0].len; iv++){
 
-      // TODO: FOR MPI
       for (int k = 0; k < nl; k++) {
-        for (int j = 0; j < N_Out; j++) {
-          for (int i = 0; i < N_Out; i++) {
-            field[N_Out*N_Out*k + N_Out*j + i] = nodata; // for MPI
+        for (int j = 0; j < NY_Out; j++) {
+          for (int i = 0; i < NX_Out; i++) {
+            field[NY_Out*NX_Out*k + NX_Out*j + i] = nodata; // for MPI
   //          field[Nyp1*Nxp1*k + Nxp1*j + i] = 0.;
           }
         }
@@ -246,9 +245,9 @@ void write_nc() {
 #endif
 
       for (int k = 0; k < nl; k++) {
-        for (int j = out_start; j < out_end; j++) {
-          for (int i = out_start; i < Out_end; i++) {
-            field[N_Out*N_Out*k + N_Out*(j + J0) + (i + I0)] = data_loc[idx(i,j,k)];
+        for (int j = ibc; j < Nyp1 - ibc; j++) {
+          for (int i = ibc; i < Nxp1 - ibc; i++) {
+            field[NY_Out*NX_Out*k + NX_Out*(j + J0) + (i + I0)] = data_loc[idx(i,j,k)];
           }
         }
       }
@@ -256,7 +255,7 @@ void write_nc() {
     if (pid() == 0) { // master
 
 #if _MPI
-      MPI_Reduce (MPI_IN_PLACE, &field[0], N_Out*N_Out*nl, MPI_FLOAT, MPI_MIN, 0,MPI_COMM_WORLD);
+      MPI_Reduce (MPI_IN_PLACE, &field[0], NX_Out*NY_Out*nl, MPI_FLOAT, MPI_MIN, 0,MPI_COMM_WORLD);
 #endif
 
       if ((nc_err = nc_put_vara_float(ncid, nc_varid[iv], start, count,
@@ -265,7 +264,7 @@ void write_nc() {
   } // master
 #if _MPI
   else // slave
-  MPI_Reduce (&field[0], NULL, N_Out*N_Out*nl, MPI_FLOAT, MPI_MIN, 0,MPI_COMM_WORLD);
+  MPI_Reduce (&field[0], NULL, NX_Out*NY_Out*nl, MPI_FLOAT, MPI_MIN, 0,MPI_COMM_WORLD);
 #endif
   }
   free(field);

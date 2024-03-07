@@ -29,7 +29,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <fftw3.h>
-#include <unistd.h>
 
 #ifdef _MPI
   #include <mpi.h>
@@ -98,12 +97,6 @@ List *params;
 int main(int argc,char* argv[])
 {
 
-  // {
-  //       int i=0;
-  //       while (0 == i)
-  //           sleep(5);
-  //   }
-  
   init_mpi();
 
   /**
@@ -169,7 +162,6 @@ int main(int argc,char* argv[])
 
   list_nc = list_append(list_nc, psi,"psi", "double");
   list_nc = list_append(list_nc, q, "q", "double");
-  list_nc = list_append(list_nc, omega, "omega", "double");
   create_nc(file_tmp);
 
   /**
