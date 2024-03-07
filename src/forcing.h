@@ -115,7 +115,7 @@ void calc_forc() {
       double k = 1./Ly*(i + K0_f);
 
       double K2 = sq(k) + sq(l);
-      double norm = sqrt(2*pi*K2)*dk;
+      double norm = sqrt(8*pi*K2)*dk;
       double envelope = sqrt(norm*exp(-sq(sqrt(K2) - k_f)/(2*sq(dk))));
 
       double magnitude = sigma_f*normal_noise();
