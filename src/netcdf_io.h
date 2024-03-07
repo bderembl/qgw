@@ -28,11 +28,7 @@ int nc_varid[1000];
 char * nc_varname[1000];
 int nc_rec = -1;
 
-/* // output indices for periodic/bounded simulations */
-/* int out_start; */
-/* int out_end; */
-/* int Out_end; */
-
+/* output indices for periodic/bounded simulations */
 int NX_Out;
 int NY_Out;
 
