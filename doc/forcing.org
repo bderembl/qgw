@@ -251,13 +251,13 @@ To activate this function you must define two parameters in params.in
 - ~dt_forc~: the time interval between two forcing snapshots
 - ~dt_forc_period~: the time period of the forcing
 
-and obvisously you must ensure that ~i*dt_forc=dt_forc_cycle~ with ~i~ an
-integer. If you want a stationary forcing, simply put ~dt_forc=dt_forc_cycle~.
+and obviously you must ensure that ~i*dt_forc=dt_forc_period~ with ~i~ an
+integer. If you want a stationary forcing, simply put ~dt_forc=dt_forc_period~.
 
 The forcing fields are read in a file named ~input_vars.nc~ which must be placed
-in the same folder as the executable. This netCDF file must contain the a
-variable named ~q_forcing_3d~ with ~i~ records and the same spatial dimensions
-as a ~q~ fields that you would obtain in a regular output file.
+in the same folder as the executable. This netCDF file must contain a variable
+named ~q_forcing_3d~ with ~i~ records and the same spatial dimensions as a ~q~
+fields that you would obtain in a regular output file.
 
 At each time step the actual forcing is linearly interpolated between two
 neighboring forcing snapshots. At $t=0$, the forcing is exactly the first record

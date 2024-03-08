@@ -33,7 +33,7 @@ double *q_forc_3d;
 double *q_forc_3d_t1;
 double *q_forc_3d_t2;
 
-// for restart
+// forcing lists
 List *list_forc1;
 List *list_forc2;
 
