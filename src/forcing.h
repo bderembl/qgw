@@ -39,14 +39,14 @@ fftw_plan transfo_inverse_forc;
 
 void  init_stoch_forc(){
 	
-  // The result is of size Nx x Ny (or Nxm1 x Nym1 if periodic BCs), but the fields (and the forcing vector) are Nxp1 x Nyp1.
+  // The result is of size Nxp1 x Nyp1 (or Nx x Ny if periodic BCs), but the fields (and the forcing vector) are Nxp2 x Nyp2.
 
-  forc = calloc(Nxp1*Nyp1, sizeof( double ) );
+  forc = calloc(Nxp2*Nyp2, sizeof( double ) );
   
   if (bc_fac == -1) {
-    N_F = NXm1;
-  } else {
     N_F = NX;
+  } else {
+    N_F = NXp1;
   }
 
   NK_f = N_F/2 + 1;
@@ -94,8 +94,8 @@ void  init_stoch_forc(){
   // upper layer only
   int k = 0;
 
-  for(int j = 0; j<Nyp1; j++){
-    for(int i = 0; i <Nxp1; i++){
+  for(int j = 0; j<Nyp2; j++){
+    for(int i = 0; i <Nxp2; i++){
       forc[idx(i,j,k)] = 0.;
     }
   }

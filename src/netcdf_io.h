@@ -43,8 +43,8 @@ void create_nc(char* file_out)
      ibc = 1;
    }
 
-   NX_Out = NXp1 - 2*ibc;
-   NY_Out = NYp1 - 2*ibc;
+   NX_Out = NXp2 - 2*ibc;
+   NY_Out = NYp2 - 2*ibc;
 
 
    sprintf (file_nc,"%s", file_out);
@@ -229,7 +229,7 @@ void write_nc() {
         for (int j = 0; j < NY_Out; j++) {
           for (int i = 0; i < NX_Out; i++) {
             field[NY_Out*NX_Out*k + NX_Out*j + i] = nodata; // for MPI
-  //          field[Nyp1*Nxp1*k + Nxp1*j + i] = 0.;
+  //          field[Nyp2*Nxp2*k + Nxp2*j + i] = 0.;
           }
         }
       }
@@ -241,8 +241,8 @@ void write_nc() {
 #endif
 
       for (int k = 0; k < nl; k++) {
-        for (int j = ibc; j < Nyp1 - ibc; j++) {
-          for (int i = ibc; i < Nxp1 - ibc; i++) {
+        for (int j = ibc; j < Nyp2 - ibc; j++) {
+          for (int i = ibc; i < Nxp2 - ibc; i++) {
             field[NY_Out*NX_Out*k + NX_Out*(j + J0) + (i + I0)] = data_loc[idx(i,j,k)];
           }
         }
@@ -289,7 +289,7 @@ void read_nc(char* file_in){
   char varname[NC_MAX_NAME+1];
   int *dimids = NULL;
 
-  float * field = (float *)malloc((NX+1)*(NY+1)*nl*sizeof(float));
+  float * field = (float *)malloc((NXp2)*(NYp2)*nl*sizeof(float));
 
   if ((nc_err = nc_open(file_in, NC_NOWRITE, &ncfile)))
     ERR(nc_err);
@@ -316,17 +316,17 @@ void read_nc(char* file_in){
 
       count[0] = 1;
       count[1] = nl;
-      count[2] = NX+1;
-      count[3] = NY+1;
+      count[2] = NXp2;
+      count[3] = NYp2;
       if ((nc_err = nc_get_vara_float(ncfile, iv, start, count,
                                       &field[0])))
         ERR(nc_err);
 
 
       for (int k = 0; k < nl; k++) {
-        for (int j = 0; j < Nyp1; j++) {
-          for (int i = 0; i < Nxp1; i++) {
-            q[idx(i,j,k)] = field[NYp1*NXp1*k + NXp1*(j + J0) + i];
+        for (int j = 0; j < Nyp2; j++) {
+          for (int i = 0; i < Nxp2; i++) {
+            q[idx(i,j,k)] = field[NYp2*NXp2*k + NXp2*(j + J0) + i];
           }
         }
       } // end k loop

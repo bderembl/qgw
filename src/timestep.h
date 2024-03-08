@@ -59,9 +59,9 @@ void check_timestep(){
 
 void init_timestep(){
 
-  f0_ab = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
-  f1_ab = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
-  f2_ab = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
+  f0_ab = calloc( Nxp2*Nyp2*nl, sizeof( double ) );
+  f1_ab = calloc( Nxp2*Nyp2*nl, sizeof( double ) );
+  f2_ab = calloc( Nxp2*Nyp2*nl, sizeof( double ) );
 	
   check_timestep();
 
@@ -76,8 +76,8 @@ double adjust_timestep(double *psi) {
   double dt_max = HUGE;
 
   for(int k = 0; k<nl; k++){
-    for(int j = 1; j<Ny; j++){
-      for(int i = 1;i <Nx; i++){
+    for(int j = 1; j<Nyp1; j++){
+      for(int i = 1; i<Nxp1; i++){
         double u = -(psi[idx(i+1,j,k)] - psi[idx(i,j,k)])/Delta;
         double v =  (psi[idx(i,j+1,k)] - psi[idx(i,j,k)])/Delta;
         u = max(fabs(u), fabs(v));
@@ -138,8 +138,8 @@ void timestep(double * q){
   double c2 = sq(dt)*(dt/3 + dt0/2)/(dt1*(dt0 + dt1));
 
   for(int k = 0; k<nl; k++){
-    for (int j = 1; j < Ny; j++){
-      for (int i = 1; i < Nx; i++){
+    for (int j = 1; j < Nyp1; j++){
+      for (int i = 1; i < Nxp1; i++){
         q[idx(i,j,k)] = q[idx(i,j,k)]  + c0*f0_ab[idx(i,j,k)] + c1*f1_ab[idx(i,j,k)] + c2*f2_ab[idx(i,j,k)];
       }
     }
@@ -147,8 +147,8 @@ void timestep(double * q){
 	
   #ifdef _STOCHASTIC
     calc_forc();
-    for (int j = 1; j < Ny; j++){
-      for (int i = 1; i < Nx; i++){
+    for (int j = 1; j < Nyp1; j++){
+      for (int i = 1; i < Nxp1; i++){
         q[idx(i,j,0)] += forc[idx(i,j,0)]*sqrt(dt);
       }
   }
