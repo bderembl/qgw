@@ -148,10 +148,19 @@ void invert_pv(double *q, double *psi, double *omega) {
   } // mode loop
 
   // adjust boundary conditions
-  adjust_bc(q, psi);
+  // in periodic, it is important to set the psi BC before q and omega
+  adjust_bc(psi, 0, psi);
+  adjust_bc(q,   1, psi);
 
   // calculate omega
-  calc_omega(psi, omega);
+  for(int k = 0; k<nl; k++){
+    for(int j = 1; j<Nyp1; j++){
+      for(int i = 1; i<Nxp1; i++){
+        omega[idx(i,j,k)] = laplacian(psi);
+      }
+    }
+  }
+  adjust_bc(omega, 1, psi);
 
 }
 
