@@ -87,12 +87,15 @@ double w_topo = 1.;
 // declaration of list type needs to occur after extra.h import
 List *params; 
 
+// for restart
+List *list_in;
+
 #include "domain.h"
-#include "elliptic.h"
-#include "forcing.h"
-#include "dynamics.h"
-#include "timestep.h"
 #include "netcdf_io.h"
+#include "elliptic.h"
+#include "dynamics.h"
+#include "forcing.h"
+#include "timestep.h"
 
 int main(int argc,char* argv[])
 {
@@ -123,6 +126,8 @@ int main(int argc,char* argv[])
   params = list_append(params, &bc_fac, "bc_fac", "double");
   params = list_append(params, &tend, "tend", "double");
   params = list_append(params, &dt_out, "dt_out", "double");
+  params = list_append(params, &dt_forc, "dt_forc", "double");
+  params = list_append(params, &dt_forc_period, "dt_forc_period", "double");
   params = list_append(params, &sigma_f, "sigma_f", "double");
   params = list_append(params, &k_f, "k_f", "double");
   params = list_append(params, &cfl, "cfl", "double");
@@ -151,8 +156,13 @@ int main(int argc,char* argv[])
   fprintf(stdout,"Stochastic forcing. \n");
 #endif
 
+  init_4d_forcing();
+
   // read q0 (restart)
-  read_nc("restart.nc");
+  list_in = list_append(list_in, q,"q", "double");
+  read_nc(list_in, "restart.nc", 0);
+  list_free(list_in);
+
   // First inversion
   invert_pv(q, psi, omega);
 
@@ -162,6 +172,7 @@ int main(int argc,char* argv[])
 
   list_nc = list_append(list_nc, psi,"psi", "double");
   list_nc = list_append(list_nc, q, "q", "double");
+
   create_nc(file_tmp);
 
   /**
@@ -196,6 +207,8 @@ int main(int argc,char* argv[])
 #ifdef _STOCHASTIC
   clean_stoch_forcing();
 #endif
+
+  clean_4d_forcing();
 
   clean_fft();
   clean_timestep();

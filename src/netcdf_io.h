@@ -281,7 +281,7 @@ void write_nc() {
    TODO: extend this routine to read anything
  */
 
-void read_nc(char* file_in){
+void read_nc(List *list_in, char* file_in, int rec_in){
 
   int ncfile, ndims, nvars, ngatts, unlimited;
   int var_ndims, var_natts;
@@ -289,13 +289,25 @@ void read_nc(char* file_in){
   char varname[NC_MAX_NAME+1];
   int *dimids = NULL;
 
-  float * field = (float *)malloc((NXp2)*(NYp2)*nl*sizeof(float));
+
+  // periodic: remove one point in all directions in output
+   if (bc_fac == -1) {
+     ibc = 1;
+   }
+
+   NX_Out = NXp2 - 2*ibc;
+   NY_Out = NYp2 - 2*ibc;
+
+  float * field = (float *)malloc((NX_Out)*(NY_Out)*nl*sizeof(float));
 
   if ((nc_err = nc_open(file_in, NC_NOWRITE, &ncfile)))
     ERR(nc_err);
 
   if ((nc_err = nc_inq(ncfile, &ndims, &nvars, &ngatts, &unlimited)))
     ERR(nc_err);
+
+  for (int iv_list = 0; iv_list < list_in[0].len; iv_list++){
+
 
   for(int iv=0; iv<nvars; iv++) {
 
@@ -305,34 +317,38 @@ void read_nc(char* file_in){
       ERR(nc_err);
 
 
-    if (strcmp(varname,"q") == 0) {
-      fprintf(stdout,"Reading variable  %s!\n", "q");
+    if (strcmp(varname,list_in[iv_list].name) == 0) {
+      fprintf(stdout,"Reading variable  %s!\n", varname);
+
+      double * data_loc = (double*)list_in[iv_list].data;
 
       size_t start[4], count[4];
-      start[0] = 0; //time
+      start[0] = rec_in; //time
       start[1] = 0;
       start[2] = 0;
       start[3] = 0;
 
       count[0] = 1;
       count[1] = nl;
-      count[2] = NXp2;
-      count[3] = NYp2;
+      count[2] = NX_Out;
+      count[3] = NY_Out;
       if ((nc_err = nc_get_vara_float(ncfile, iv, start, count,
                                       &field[0])))
         ERR(nc_err);
 
 
       for (int k = 0; k < nl; k++) {
-        for (int j = 0; j < Nyp2; j++) {
-          for (int i = 0; i < Nxp2; i++) {
-            q[idx(i,j,k)] = field[NYp2*NXp2*k + NXp2*(j + J0) + i];
+        for (int j = ibc; j < Nyp2 - ibc; j++) {
+          for (int i = ibc; i < Nxp2 - ibc; i++) {
+            data_loc[idx(i,j,k)] = field[NY_Out*NX_Out*k + NX_Out*(j + J0) + i + I0];
           }
         }
-      } // end k loop
-
+      }
     }
+
   } // end nvar loop
+
+  } // end list loop
 
   free(field);
 

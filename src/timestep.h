@@ -145,15 +145,27 @@ void timestep(double * q){
     }
   }
 	
-  #ifdef _STOCHASTIC
+#ifdef _STOCHASTIC
     calc_forc();
     for (int j = 1; j < Nyp1; j++){
       for (int i = 1; i < Nxp1; i++){
         q[idx(i,j,0)] += forc[idx(i,j,0)]*sqrt(dt);
       }
   }
-  #endif
+#endif
 
+  if (dt_forc_period){
+
+    calc_4d_forcing();
+
+    for(int k = 0; k<nl; k++){
+      for (int j = 1; j < Nyp1; j++){
+        for (int i = 1; i < Nxp1; i++){
+          q[idx(i,j,k)] += q_forc_3d[idx(i,j,k)]*dt;
+        }
+      }
+    }
+  }
 
   t = t + dt;
 

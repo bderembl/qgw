@@ -240,3 +240,25 @@ print(f'Theoretical variance: {sigma**2/2/theta}')
 
 
 The Euler-Maruyama Scheme allows us to effectively control the energy injection (shown in the script test_energy_injection.py in the /test directory.)
+
+* Deterministic forcing
+
+There is the possibility to force the model with a stationary, or time varying
+forcing with user input fields.
+
+To activate this function you must define two parameters in params.in
+
+- ~dt_forc~: the time interval between two forcing snapshots
+- ~dt_forc_period~: the time period of the forcing
+
+and obvisously you must ensure that ~i*dt_forc=dt_forc_cycle~ with ~i~ an
+integer. If you want a stationary forcing, simply put ~dt_forc=dt_forc_cycle~.
+
+The forcing fields are read in a file named ~input_vars.nc~ which must be placed
+in the same folder as the executable. This netCDF file must contain the a
+variable named ~q_forcing_3d~ with ~i~ records and the same spatial dimensions
+as a ~q~ fields that you would obtain in a regular output file.
+
+At each time step the actual forcing is linearly interpolated between two
+neighboring forcing snapshots. At $t=0$, the forcing is exactly the first record
+in the netCDF file.

@@ -22,6 +22,21 @@ double dk;
 double *forc; 
 double *forc_f; 
 
+//4d forcing
+double dt_forc = 0;
+double dt_forc_period = 0;
+int n_rec_forc = 0;
+int irec_forc1 = -1;
+int irec_forc2 = 0;
+
+double *q_forc_3d;
+double *q_forc_3d_t1;
+double *q_forc_3d_t2;
+
+// for restart
+List *list_forc1;
+List *list_forc2;
+
 #define idx_fft_f(i,j) (j)*2*NK_f + (i)
 
 #ifdef _MPI
@@ -145,4 +160,85 @@ void clean_stoch_forcing(){
   free(forc);
   fftw_free(forc_f);
   fftw_destroy_plan(transfo_inverse_forc);
+}
+
+
+/**
+   4d forcing
+ */
+
+void  init_4d_forcing(){
+
+  if (dt_forc_period){
+    q_forc_3d    = calloc(Nxp2*Nyp2*nl, sizeof( double ) );
+    q_forc_3d_t1 = calloc(Nxp2*Nyp2*nl, sizeof( double ) );
+    q_forc_3d_t2 = calloc(Nxp2*Nyp2*nl, sizeof( double ) );
+
+    // same name (need two lists to load different records in 2 variables)
+    list_forc1 = list_append(list_forc1, q_forc_3d_t1,"q_forcing_3d", "double");
+    list_forc2 = list_append(list_forc2, q_forc_3d_t2,"q_forcing_3d", "double");
+
+    if (dt_forc == 0){
+      fprintf(stdout,"if dt_forc_period is non zero, dt_forc must be non zero\n");
+      exit(1);
+    }
+
+    n_rec_forc = (int)floor(dt_forc_period/dt_forc);
+
+    if (n_rec_forc*dt_forc != dt_forc_period){
+      fprintf(stdout,"dt_forc_period must be a multiple of dt_forc \n");
+      exit(1);
+    }
+
+    fprintf(stdout,"init 4D forcing. \n");
+  }
+
+}
+
+
+void calc_4d_forcing(){
+
+  if (dt_forc_period){
+
+    double w_forc1, w_forc2;
+    int irec1;
+
+    irec1 = ((int)floor(t/dt_forc))%n_rec_forc;
+    
+    // reload forcing
+    if (irec1 != irec_forc1) {
+      irec_forc1 = irec1;
+      irec_forc2 = (irec1 + 1)%n_rec_forc;
+
+      read_nc(list_forc1, "input_vars.nc", irec_forc1);
+      read_nc(list_forc2, "input_vars.nc", irec_forc2);
+    }
+
+    // recompute weights and interpolate forcing
+    w_forc2 = t/dt_forc - (int)floor(t/dt_forc);
+    w_forc1 = 1 - w_forc2;
+
+    for(int k = 0; k<nl; k++){
+      for (int j = 1; j < Nyp1; j++){
+        for (int i = 1; i < Nxp1; i++){
+          q_forc_3d[idx(i,j,k)] = w_forc1*q_forc_3d_t1[idx(i,j,k)]
+            + w_forc2*q_forc_3d_t2[idx(i,j,k)];
+        }
+      }
+    }
+
+  } // end if
+}
+
+
+void clean_4d_forcing(){
+
+  if (dt_forc_period){
+    list_free(list_forc1);
+    list_free(list_forc2);
+
+    free(q_forc_3d);
+    free(q_forc_3d_t1);
+    free(q_forc_3d_t2);
+  }
 }
