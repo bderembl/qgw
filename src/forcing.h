@@ -21,7 +21,6 @@ double dk;
 
 double *forc; 
 double *forc_f; 
-fftw_complex *forc_f_alias;
 
 //4d forcing
 double dt_forc = 0;
@@ -93,16 +92,15 @@ void  init_stoch_forc(){
 #endif
 
   forc_f = fftw_alloc_real(2*alloc_forc);
-  forc_f_alias = (fftw_complex*) &forc_f[0];
 
 #ifdef _MPI
 
   ptrdiff_t NN[] = {N_F, N_F};
-  transfo_inverse_forc = fftw_mpi_plan_dft_c2r_2d(N_F, N_F, forc_f_alias, forc_f, MPI_COMM_WORLD,
+  transfo_inverse_forc = fftw_mpi_plan_dft_c2r_2d(N_F, N_F, (fftw_complex*) forc_f, forc_f, MPI_COMM_WORLD,
                                             FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
 #else
 
-  transfo_inverse_forc = fftw_plan_dft_c2r_2d(N_f, N_f, forc_f_alias, forc_f, FFTW_EXHAUSTIVE);
+  transfo_inverse_forc = fftw_plan_dft_c2r_2d(N_f, N_f, (fftw_complex*) forc_f, forc_f, FFTW_EXHAUSTIVE);
 
 #endif
   
