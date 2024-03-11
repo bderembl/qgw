@@ -123,24 +123,27 @@ void  init_stoch_forc(){
 void calc_forc() {
   
   // initiate forcing in spectral space
-  for(int j = 0; j < N_F; j++){
-    for(int i = 0; i < Nk_f; i++){
-      
-      double l = fmodf(1./Lx*j + N_F/2*dk, N_F*dk) - N_F/2*dk;
-      double k = 1./Ly*(i + K0_f);
+  if (rank <= rank_crit){
+    for(int j = 0; j < N_F; j++){
+      for(int i = 0; i < Nk_f; i++){
+        
+        double l = fmodf(1./Lx*j + N_F/2*dk, N_F*dk) - N_F/2*dk;
+        double k = 1./Ly*(i + K0_f);
 
-      double K2 = sq(k) + sq(l);
-      double norm = sqrt(8*pi*K2)*dk;
-      double envelope = sqrt(norm*exp(-sq(sqrt(K2) - k_f)/(2*sq(dk))));
+        double K2 = sq(k) + sq(l);
+        double norm = sqrt(8*pi*K2)*dk;
+        double envelope = sqrt(norm*exp(-sq(sqrt(K2) - k_f)/(2*sq(dk))));
 
-      double magnitude = sigma_f*normal_noise();
-      double phase = noise()*2*pi;
+        double magnitude = sigma_f*normal_noise();
+        double phase = noise()*2*pi;
 
-      forc_f[idx_fft2_f(i,j)] = envelope*magnitude*cos(phase);
-      forc_f[idx_fft2_f(i,j) + 1] = envelope*magnitude*sin(phase);
+        forc_f[idx_fft2_f(i,j)] = envelope*magnitude*cos(phase);
+        forc_f[idx_fft2_f(i,j) + 1] = envelope*magnitude*sin(phase);
 
+      }
     }
   }
+  
 
   // execute FFT
   fftw_execute(transfo_inverse_forc);
@@ -148,9 +151,11 @@ void calc_forc() {
   // upper layer only
   int k = 0;
 
-  for(int j = 0; j<N_f; j++){
-    for(int i = 0; i<N_F; i++){
-      forc[idx(i+1,j+1,k)] = forc_f[idx_fft_f(i,j)];
+  if (rank <= rank_crit){
+    for(int j = 0; j<N_f; j++){
+      for(int i = 0; i<N_F; i++){
+        forc[idx(i+1,j+1,k)] = forc_f[idx_fft_f(i,j)];
+      }
     }
   }
   
