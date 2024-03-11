@@ -162,7 +162,7 @@ void init_domain() {
 
   if (bc_fac == -1) {
     for(int j = 0; j < Nx; j++)
-      L[j] = fmodf(2*pi*(j)/Lx + 2*pi*Nx/(2*Lx), 2*pi*Nx/Lx) - 2*pi*Nx/(2*Lx);
+      L[j] = 2*pi/Lx*(((j + Nx/2) % Nx) - Nx/2);
     for(int i = 0; i < Nk; i++)
       K[i] = 2*pi*(i + K0)/Lx;
 
