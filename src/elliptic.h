@@ -11,6 +11,7 @@
 
 // FFTW in/outputs and plans
 double *wrk1;
+fftw_complex *wrk1_alias;
 fftw_plan transfo_direct, transfo_inverse;
 
 // normalisation factor
@@ -35,15 +36,16 @@ void init_elliptic(){
     norm = NX*NY;
 
     wrk1 = fftw_alloc_real(2*alloc_local);
-  
+    wrk1_alias = (fftw_complex*) &wrk1[0];
+
     #ifdef _MPI
       transfo_direct = fftw_mpi_plan_dft_r2c_2d(NY, NX, wrk1, wrk1, MPI_COMM_WORLD,
                                             FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_OUT);
       transfo_inverse = fftw_mpi_plan_dft_c2r_2d(NY, NX, wrk1, wrk1, MPI_COMM_WORLD,
                                             FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
     #else
-      transfo_direct  = fftw_plan_dft_r2c_2d(Nx, Ny, wrk1, wrk1, FFTW_EXHAUSTIVE);
-      transfo_inverse = fftw_plan_dft_c2r_2d(Nx, Ny, wrk1, wrk1, FFTW_EXHAUSTIVE);
+      transfo_direct  = fftw_plan_dft_r2c_2d(Nx, Ny, wrk1, wrk1_alias, FFTW_EXHAUSTIVE);
+      transfo_inverse = fftw_plan_dft_c2r_2d(Nx, Ny, wrk1_alias, wrk1, FFTW_EXHAUSTIVE);
     #endif
   } else {
 
