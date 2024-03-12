@@ -37,9 +37,9 @@ void init_elliptic(){
     wrk1 = fftw_alloc_real(2*alloc_local);
 
     #ifdef _MPI
-      transfo_direct = fftw_mpi_plan_dft_r2c_2d(NY, NX, wrk1, wrk1, MPI_COMM_WORLD,
+      transfo_direct = fftw_mpi_plan_dft_r2c_2d(NY, NX, wrk1, (fftw_complex*) wrk1, MPI_COMM_WORLD,
                                             FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_OUT);
-      transfo_inverse = fftw_mpi_plan_dft_c2r_2d(NY, NX, wrk1, wrk1, MPI_COMM_WORLD,
+      transfo_inverse = fftw_mpi_plan_dft_c2r_2d(NY, NX, (fftw_complex*) wrk1, wrk1, MPI_COMM_WORLD,
                                             FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
     #else
       transfo_direct  = fftw_plan_dft_r2c_2d(Nx, Ny, wrk1,(fftw_complex*) wrk1, FFTW_EXHAUSTIVE);
