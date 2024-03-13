@@ -105,14 +105,11 @@ void  init_stoch_forc(){
   
 #ifdef _MPI
 
-  // ptrdiff_t NN[] = {N_F, N_F};
   transfo_inverse_forc = fftw_mpi_plan_dft_c2r_2d(N_F, N_F, forc_f, forc_p, MPI_COMM_WORLD,
                                             FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
-  // transfo_inverse_forc = fftw_mpi_plan_dft_c2r_2d(N_F, N_F, forc_f, forc_f, MPI_COMM_WORLD,
-  //                                          FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
 #else
 
-  transfo_inverse_forc = fftw_plan_dft_c2r_2d(N_f, N_f, forc_f, forc_f, FFTW_EXHAUSTIVE);
+  transfo_inverse_forc = fftw_plan_dft_c2r_2d(N_f, N_f, (fftw_complex*) forc_f, forc_f, FFTW_EXHAUSTIVE);
 
 #endif
   
