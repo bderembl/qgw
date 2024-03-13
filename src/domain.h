@@ -180,7 +180,8 @@ void  init_vars(){
   /* 3d variables */
   psi   = calloc( Nxp2*Nyp2*nl, sizeof( double ) );
   q     = calloc( Nxp2*Nyp2*nl, sizeof( double ) );
-  omega = calloc( Nxp2*Nyp2*nl, sizeof( double ) );
+  diff = calloc( Nxp2*Nyp2*nl, sizeof( double ) );
+  lap_n_diff = calloc( Nxp2*Nyp2*nl, sizeof( double ) );
 
   /* 2d variables */
   topo = calloc( Nxp2*Nyp2, sizeof( double ) );
@@ -190,7 +191,8 @@ void  init_vars(){
       for(int i = 0;i <Nxp2; i++){
         q[idx(i,j,k)] = 0.;
         psi[idx(i,j,k)] = 0.;
-        omega[idx(i,j,k)] = 0.;
+        diff[idx(i,j,k)] = 0.;
+        lap_n_diff[idx(i,j,k)] = 0.;
       }
     }
   }

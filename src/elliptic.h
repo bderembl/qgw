@@ -73,7 +73,7 @@ void init_elliptic(){
   compute_eigmode();
 }
 
-void invert_pv(double *q, double *psi, double *omega) {
+void invert_pv(double *q, double *psi) {
 
   // reset psi. Temporary: only needed if doing FFT mode by mode
   for(int k = 0; k<nl; k++){
@@ -151,17 +151,7 @@ void invert_pv(double *q, double *psi, double *omega) {
   // in periodic, it is important to set the psi BC before q and omega
   adjust_bc(psi, 0, psi);
   adjust_bc(q,   1, psi);
-
-  // calculate omega
-  for(int k = 0; k<nl; k++){
-    for(int j = 1; j<Nyp1; j++){
-      for(int i = 1; i<Nxp1; i++){
-        omega[idx(i,j,k)] = laplacian(psi);
-      }
-    }
-  }
-  adjust_bc(omega, 1, psi);
-
+  
 }
 
 void clean_fft(){

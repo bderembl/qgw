@@ -20,15 +20,11 @@ void check_timestep(){
       decreases it if necessary.
   */
   
-  double nu_eff = max(nu,nu_kin);
+  double inv_t_nu_hyper = nu_hyper*20./pow(Lx/Nx, n_hyper);
+  double inv_t_nu = nu*20./pow(Lx/Nx, 2);
+  double inv_t_beta = 2.*beta*Lx;
 
-  if (beta != 0 && nu_eff != 0) {
-    DT_max = min(1/(2.*beta*Lx),sq(Lx/Nx)/nu_eff/20.);
-  } else if (beta != 0 && nu_eff == 0) {
-    DT_max = 1/(2.*beta*Lx);
-  } else if (beta == 0 && nu_eff != 0) {
-    DT_max = sq(Lx/Nx)/nu_eff/20.;
-  }
+  DT_max = 1/max(max(inv_t_nu_hyper, inv_t_nu), inv_t_beta);
 
   /**
      Adjusts dt with forcing
