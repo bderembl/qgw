@@ -21,3 +21,7 @@ barotropic topography
 
 doubly periodic stochastic forcing
 
+* params_06
+
+hyperviscosity (barotropic, stochastic energy injection)
+

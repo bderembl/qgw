@@ -1,12 +1,12 @@
 #!sh
 # input parameter file
 # double gyre 
-NX  = 512
-NY  = 512
+NX  = 256
+NY  = 256
 nl = 1
 Lx = 1
 f0 = 2
-beta = 0
+beta = 5
 tau0 = 0
 forc_mode = 4.0
 
@@ -24,8 +24,8 @@ N2 = [0]
 
 
 nu = 0
-nu_hyper = 5e-7
-n_hyper = 2
+nu_hyper = 3.56e-16
+n_hyper = 6
 hEkb = 5e-4
 
 # timestepping

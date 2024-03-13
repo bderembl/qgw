@@ -44,7 +44,7 @@ $$ -\frac{tau0}{dh[0]} forc_mode \frac{\pi}{Ly} sin\left(forc_mode \pi \frac{y}{
 
 - nu_hyper: hyper-viscosity 
 
-- n_hyper: index of hyper-viscosity (0 corresponds to linear drag, 2 corresponds to harmonic viscosity, ...)
+- n_hyper: index of hyper-viscosity (in front of vorticity in the PV equation: 0 corresponds to linear drag, 2 corresponds to harmonic viscosity, ...)
 
 - hEkb: thickness of the bottom Ekman layer in m.
 
