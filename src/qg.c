@@ -172,7 +172,7 @@ int main(int argc,char* argv[])
 
   list_nc = list_append(list_nc, psi,"psi", "double");
   list_nc = list_append(list_nc, q, "q", "double");
-
+  list_nc = list_append(list_nc, forc, "forc", "double");
   create_nc(file_tmp);
 
   /**
@@ -190,6 +190,7 @@ int main(int argc,char* argv[])
 
       // write output
       fprintf(stdout,"Write output, t = %e \n",t);
+
       write_nc();
 
     }
@@ -199,7 +200,6 @@ int main(int argc,char* argv[])
 
   }
 
- 
   /**
      Cleanup
   */

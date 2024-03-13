@@ -16,11 +16,20 @@ int Nk_f;
 int N_F;
 int N_f;
 int J0_f;
-int K0_f;
+int K0_f = 0;
 double dk;
 
+// thin ring forcing variables
+int N_P;
+int N_p;
+int *ind_i;
+int *ind_j;
+int N_ind;
+
 double *forc; 
-double *forc_f; 
+fftw_complex *forc_f; 
+double *forc_p;
+int rank_crit_f;
 
 //4d forcing
 double dt_forc = 0;
@@ -40,9 +49,9 @@ List *list_forc2;
 #define idx_fft_f(i,j) (j)*2*NK_f + (i)
 
 #ifdef _MPI
-  #define idx_fft2_f(i,j) (i)*(2*N_F) + 2*(j)
+  #define idx_fft2_f(i,j) (i)*N_F + (j)
 #else
-  #define idx_fft2_f(i,j) (j)*2*NK_f + 2*(i)
+  #define idx_fft2_f(i,j) (j)*NK_f + (i)
 #endif
 
 fftw_plan transfo_inverse_forc;
@@ -72,8 +81,9 @@ void  init_stoch_forc(){
   alloc_forc = Nk_f*N_f;
 
 #ifdef _MPI
+  int blocksize = ceil((double)NK_f/n_ranks);
+  rank_crit_f = ceil((double)NK_f/blocksize)-1;
 
-  ptrdiff_t N[] = {N_F, NK_f};
   ptrdiff_t local_n0;
   ptrdiff_t local_0_start;
   ptrdiff_t local_n1;
@@ -88,16 +98,18 @@ void  init_stoch_forc(){
                                         &local_n1, &local_1_start);
   K0_f = local_1_start;
   Nk_f = local_n1;
-  
 #endif
 
-  forc_f = fftw_alloc_real(2*alloc_forc);
+  forc_f = fftw_alloc_complex(alloc_forc);
+  forc_p = fftw_alloc_real(2*alloc_forc);
   
 #ifdef _MPI
 
-  ptrdiff_t NN[] = {N_F, N_F};
-  transfo_inverse_forc = fftw_mpi_plan_dft_c2r_2d(N_F, N_F, forc_f, forc_f, MPI_COMM_WORLD,
+  // ptrdiff_t NN[] = {N_F, N_F};
+  transfo_inverse_forc = fftw_mpi_plan_dft_c2r_2d(N_F, N_F, forc_f, forc_p, MPI_COMM_WORLD,
                                             FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
+  // transfo_inverse_forc = fftw_mpi_plan_dft_c2r_2d(N_F, N_F, forc_f, forc_f, MPI_COMM_WORLD,
+  //                                          FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
 #else
 
   transfo_inverse_forc = fftw_plan_dft_c2r_2d(N_f, N_f, forc_f, forc_f, FFTW_EXHAUSTIVE);
@@ -105,6 +117,33 @@ void  init_stoch_forc(){
 #endif
   
   dk = 1./Lx;
+  N_P = 0;
+  N_p = 0;
+  N_ind = 4*pi*k_f/dk;
+  ind_i = calloc(N_ind, sizeof( int ) );
+  ind_j = calloc(N_ind, sizeof( int ) );
+
+  // get the indices which are to be forced
+  for (int j = 0; j < N_F; j ++){
+    for (int i = 0; i < NK_f; i ++){
+
+      double l = (((j + N_F/2) % N_F) - N_F/2)*dk;
+      double k = (i)*dk;
+
+      double dist_k = fabs(k - sqrt(sq(k_f) - sq(l)));
+      double dist_l = min(fabs(l - sqrt(sq(k_f) - sq(k))), fabs(l + sqrt(sq(k_f) - sq(k))));
+
+      if (dist_k < dk/2 || dist_l < dk/2){ // check whether point is to be forced
+        N_P += 1;
+        if (i >= K0_f && i < K0_f + Nk_f){ // check whether point is in local domain
+          ind_i[N_p] = i - K0_f;
+          ind_j[N_p] = j;
+          N_p += 1;
+        }
+      }
+    }
+  }
+
 
   // upper layer only
   int k = 0;
@@ -116,32 +155,30 @@ void  init_stoch_forc(){
   }
   
   for(int i = 0; i < (2*alloc_forc); i++){
-    forc_f[i] = 0.;
+    forc_p[i] = 0.;
+  }
+
+  for(int i = 0; i < (alloc_forc); i++){
+    forc_f[i][0] = 0.;
+    forc_f[i][1] = 0.;
   }
 }
 
 void calc_forc() {
   
   // initiate forcing in spectral space
-  for(int j = 0; j < N_F; j++){
-    for(int i = 0; i < Nk_f; i++){
-      
-      double l = (((j + N_F/2) % N_F) - N_F/2)*dk;
-      double k = 1./Ly*(i + K0_f);
 
-      double K2 = sq(k) + sq(l);
-      double norm = sqrt(8*pi*K2)*dk;
-      double envelope = sqrt(norm*exp(-sq(sqrt(K2) - k_f)/(2*sq(dk))));
+  for (int ii = 0; ii < N_p; ii++){
+    int i = ind_i[ii];
+    int j = ind_j[ii];
 
-      double magnitude = sigma_f*normal_noise();
-      double phase = noise()*2*pi;
+    double envelope = sqrt((double) 8/((N_P-1)*2))*pi*k_f;
+    double magnitude = sigma_f*normal_noise();
+    double phase = noise()*2*pi;
 
-      forc_f[idx_fft2_f(i,j)] = envelope*magnitude*cos(phase);
-      forc_f[idx_fft2_f(i,j) + 1] = envelope*magnitude*sin(phase);
-
-    }
+    forc_f[idx_fft2_f(i,j)][0] = envelope*magnitude*cos(phase);
+    forc_f[idx_fft2_f(i,j)][1] = envelope*magnitude*sin(phase);
   }
-  
 
   // execute FFT
   fftw_execute(transfo_inverse_forc);
@@ -151,7 +188,7 @@ void calc_forc() {
 
   for(int j = 0; j<N_f; j++){
     for(int i = 0; i<N_F; i++){
-      forc[idx(i+1,j+1,k)] = forc_f[idx_fft_f(i,j)];
+      forc[idx(i+1,j+1,k)] = forc_p[idx_fft_f(i,j)];
     }
   }
   
