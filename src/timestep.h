@@ -24,8 +24,9 @@ void check_timestep(){
   double inv_t_nu = nu*20./pow(Lx/Nx, 2);
   double inv_t_beta = 2.*beta*Lx;
 
-  DT_max = 1/max(max(inv_t_nu_hyper, inv_t_nu), inv_t_beta);
+  DT_max = pow(max(max(inv_t_nu_hyper, inv_t_nu), inv_t_beta), -1.);
 
+  printf("DT_MAX = %e", DT_max);
   /**
      Adjusts dt with forcing
      U ~ forcing*dt*L
