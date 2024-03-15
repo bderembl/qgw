@@ -61,110 +61,113 @@ fftw_plan transfo_inverse_forc;
 // functions to calculate forcing
 
 void  init_stoch_forc(){
-	
-  // The result is of size Nxp1 x Nyp1 (or Nx x Ny if periodic BCs), but the fields (and the forcing vector) are Nxp2 x Nyp2.
 
-  forc = calloc(Nxp2*Nyp2, sizeof( double ) );
-  
-  if (bc_fac == -1) {
-    N_F = NX;
-  } else {
-    N_F = NXp1;
-  }
+  if(k_f){
+    fprintf(stdout,"Stochastic forcing. \n");
+    
+    // k_f is thought to be 1/lambda in the following.
+    k_f /= 2*pi;
+    
+    // The result is of size Nxp1 x Nyp1 (or Nx x Ny if periodic BCs), but the fields (and the forcing vector) are Nxp2 x Nyp2.
+    forc = calloc(Nxp2*Nyp2, sizeof( double ) );
+    
+    if (bc_fac == -1) {
+      N_F = NX;
+    } else {
+      N_F = NXp1;
+    }
 
-  NK_f = N_F/2 + 1;
+    NK_f = N_F/2 + 1;
 
-  Nk_f = NK_f;
-  N_f = N_F;
+    Nk_f = NK_f;
+    N_f = N_F;
 
-  alloc_forc = Nk_f*N_f;
+    alloc_forc = Nk_f*N_f;
 
-#ifdef _MPI
+  #ifdef _MPI
 
-  ptrdiff_t local_n0;
-  ptrdiff_t local_0_start;
-  ptrdiff_t local_n1;
-  ptrdiff_t local_1_start;
-  
-  alloc_forc = fftw_mpi_local_size_2d(N_F, NK_f, MPI_COMM_WORLD, // call for the size of the complex array
-                                        &local_n0, &local_0_start);
-  J0_f = local_0_start;
-  N_f = local_n0;
+    ptrdiff_t local_n0;
+    ptrdiff_t local_0_start;
+    ptrdiff_t local_n1;
+    ptrdiff_t local_1_start;
+    
+    alloc_forc = fftw_mpi_local_size_2d(N_F, NK_f, MPI_COMM_WORLD, // call for the size of the complex array
+                                          &local_n0, &local_0_start);
+    J0_f = local_0_start;
+    N_f = local_n0;
 
-  alloc_forc = fftw_mpi_local_size_2d(NK_f, N_F, MPI_COMM_WORLD, // call for the starting indices of the transposed complex array
-                                        &local_n1, &local_1_start);
-  K0_f = local_1_start;
-  Nk_f = local_n1;
-#endif
+    alloc_forc = fftw_mpi_local_size_2d(NK_f, N_F, MPI_COMM_WORLD, // call for the starting indices of the transposed complex array
+                                          &local_n1, &local_1_start);
+    K0_f = local_1_start;
+    Nk_f = local_n1;
+  #endif
 
-  forc_f = fftw_alloc_complex(alloc_forc);
-  
-#ifdef _MPI
+    forc_f = fftw_alloc_complex(alloc_forc);
+    
+  #ifdef _MPI
 
-  forc_p = fftw_alloc_real(2*alloc_forc);
-  transfo_inverse_forc = fftw_mpi_plan_dft_c2r_2d(N_F, N_F, forc_f, forc_p, MPI_COMM_WORLD,
-                                            FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
-#else
+    forc_p = fftw_alloc_real(2*alloc_forc);
+    transfo_inverse_forc = fftw_mpi_plan_dft_c2r_2d(N_F, N_F, forc_f, forc_p, MPI_COMM_WORLD,
+                                              FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
+  #else
 
-  alloc_forc = N_F*N_F;
-  forc_p = fftw_alloc_real(alloc_forc);
-  transfo_inverse_forc = fftw_plan_dft_c2r_2d(N_F, N_F, forc_f, forc_p, FFTW_EXHAUSTIVE);
+    alloc_forc = N_F*N_F;
+    forc_p = fftw_alloc_real(alloc_forc);
+    transfo_inverse_forc = fftw_plan_dft_c2r_2d(N_F, N_F, forc_f, forc_p, FFTW_EXHAUSTIVE);
 
-#endif
-  
-  dk = 1./Lx;
-  N_P = 0;
-  N_p = 0;
-  N_ind = 4*pi*k_f/dk;
-  ind_i = calloc(N_ind, sizeof( int ) );
-  ind_j = calloc(N_ind, sizeof( int ) );
-  
-  // get the indices which are to be forced
-  for (int j = 0; j < N_F; j ++){
-    for (int i = 0; i < NK_f; i ++){
+  #endif
+    
+    dk = 1./Lx;
+    N_P = 0;
+    N_p = 0;
+    N_ind = 4*pi*k_f/dk;
+    ind_i = calloc(N_ind, sizeof( int ) );
+    ind_j = calloc(N_ind, sizeof( int ) );
+    
+    // get the indices which are to be forced
+    for (int j = 0; j < N_F; j ++){
+      for (int i = 0; i < NK_f; i ++){
 
-      double l = (((j + N_F/2) % N_F) - N_F/2)*dk;
-      double k = (i)*dk;
+        double l = (((j + N_F/2) % N_F) - N_F/2)*dk;
+        double k = (i)*dk;
 
-      double dist_k = fabs(k - sqrt(sq(k_f) - sq(l)));
-      double dist_l = min(fabs(l - sqrt(sq(k_f) - sq(k))), fabs(l + sqrt(sq(k_f) - sq(k))));
+        double dist_k = fabs(k - sqrt(sq(k_f) - sq(l)));
+        double dist_l = min(fabs(l - sqrt(sq(k_f) - sq(k))), fabs(l + sqrt(sq(k_f) - sq(k))));
 
-      if (dist_k < dk/2 || dist_l < dk/2){ // check whether point is to be forced
-        N_P += 1;
-        if (i >= K0_f && i < K0_f + Nk_f){ // check whether point is in local domain
-          ind_i[N_p] = i - K0_f;
-          ind_j[N_p] = j;
-          N_p += 1;
+        if (dist_k < dk/2 || dist_l < dk/2){ // check whether point is to be forced
+          N_P += 1;
+          if (i >= K0_f && i < K0_f + Nk_f){ // check whether point is in local domain
+            ind_i[N_p] = i - K0_f;
+            ind_j[N_p] = j;
+            N_p += 1;
+          }
         }
       }
     }
-  }
 
-  // upper layer only
-  int k_ind = 0;
+    // upper layer only
+    int k_ind = 0;
 
-  for(int j = 0; j<Nyp2; j++){
-    for(int i = 0; i <Nxp2; i++){
-      forc[idx(i,j,k_ind)] = 0.;
+    for(int j = 0; j<Nyp2; j++){
+      for(int i = 0; i <Nxp2; i++){
+        forc[idx(i,j,k_ind)] = 0.;
+      }
     }
-  }
-  
-  for(int i = 0; i < N_F; i++){
-    for(int j = 0; j < N_f; j++){
-      forc_p[idx_fft_f(i,j)] = 0.;
+    
+    for(int i = 0; i < N_F; i++){
+      for(int j = 0; j < N_f; j++){
+        forc_p[idx_fft_f(i,j)] = 0.;
+      }
     }
-  }
-  
-  for(int i = 0; i < (alloc_forc); i++){
-    forc_f[i][0] = 0.;
-    forc_f[i][1] = 0.;
+    
+    for(int i = 0; i < (alloc_forc); i++){
+      forc_f[i][0] = 0.;
+      forc_f[i][1] = 0.;
+    }
   }
 }
 
 void calc_forc() {
-
-  // upper layer only
-  int k_ind = 0;
   
   for(int i = 0; i < (alloc_forc); i++){
     forc_f[i][0] = 0.;
@@ -200,10 +203,12 @@ void calc_forc() {
 }
 
 void clean_stoch_forcing(){
-  free(forc);
-  fftw_free(forc_f);
-  fftw_free(forc_p);
-  fftw_destroy_plan(transfo_inverse_forc);
+  if(k_f){
+    free(forc);
+    fftw_free(forc_f);
+    fftw_free(forc_p);
+    fftw_destroy_plan(transfo_inverse_forc);
+  }
 }
 
 

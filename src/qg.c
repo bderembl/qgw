@@ -7,7 +7,6 @@
     mpicc -D_MPI -O3 qg.c -o qg.e -lfftw3_mpi -lfftw3 -lm -llapacke -lnetcdf
 
    Compilation flags
-     -D_STOCHASTIC : add a stochastic forcing
      -D_MPI : needed for mpi compilation
     
    Run with
@@ -153,12 +152,7 @@ int main(int argc,char* argv[])
   init_elliptic();
   init_vars();
   init_timestep();
-
-#ifdef _STOCHASTIC
   init_stoch_forc();
-  fprintf(stdout,"Stochastic forcing. \n");
-#endif
-
   init_4d_forcing();
 
   // read q0 (restart)
@@ -205,11 +199,9 @@ int main(int argc,char* argv[])
   /**
      Cleanup
   */
-  
-#ifdef _STOCHASTIC
-  clean_stoch_forcing();
-#endif
 
+
+  clean_stoch_forcing();
   clean_4d_forcing();
 
   clean_fft();

@@ -127,7 +127,6 @@ void timestep(double * q){
   dt0 = dt;
   dt = adjust_timestep(psi);
 
-  
   // AB3 with variable time step coefficients
   double c0 = dt*(2*sq(dt) + 3*dt*(2*dt0 + dt1) + 6*dt0*(dt0 + dt1))/(6*dt0*(dt0 + dt1));
   double c1 = sq(dt)*(-dt/3 - dt0/2 - dt1/2)/(dt0*dt1);
@@ -141,14 +140,14 @@ void timestep(double * q){
     }
   }
 	
-#ifdef _STOCHASTIC
+  if(k_f){
     calc_forc();
     for (int j = 1; j < Nyp1; j++){
       for (int i = 1; i < Nxp1; i++){
         q[idx(i,j,0)] += forc[idx(i,j,0)]*sqrt(dt);
       }
+    }
   }
-#endif
 
   if (dt_forc_period){
 
