@@ -69,7 +69,7 @@ double DT_max = 0;
 int it = 0;
 double beta = 0.;
 double nu = 0.;
-int n_hyper;
+int n_hyper = 0;
 double nu_hyper = 0.;
 double hEkb = 0.;
 double tau0 = 0.;
@@ -205,7 +205,7 @@ int main(int argc,char* argv[])
   /**
      Cleanup
   */
-
+  
 #ifdef _STOCHASTIC
   clean_stoch_forcing();
 #endif

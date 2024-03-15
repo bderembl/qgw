@@ -29,7 +29,6 @@ int N_ind;
 double *forc; 
 fftw_complex *forc_f; 
 double *forc_p;
-int rank_crit_f;
 
 //4d forcing
 double dt_forc = 0;
@@ -46,11 +45,11 @@ double *q_forc_3d_t2;
 List *list_forc1;
 List *list_forc2;
 
-#define idx_fft_f(i,j) (j)*2*NK_f + (i)
-
 #ifdef _MPI
+#define idx_fft_f(i,j) (j)*2*NK_f + (i)
   #define idx_fft2_f(i,j) (i)*N_F + (j)
 #else
+  #define idx_fft_f(i,j) (j)*N_F + (i)
   #define idx_fft2_f(i,j) (j)*NK_f + (i)
 #endif
 
@@ -81,8 +80,6 @@ void  init_stoch_forc(){
   alloc_forc = Nk_f*N_f;
 
 #ifdef _MPI
-  int blocksize = ceil((double)NK_f/n_ranks);
-  rank_crit_f = ceil((double)NK_f/blocksize)-1;
 
   ptrdiff_t local_n0;
   ptrdiff_t local_0_start;
@@ -101,15 +98,17 @@ void  init_stoch_forc(){
 #endif
 
   forc_f = fftw_alloc_complex(alloc_forc);
-  forc_p = fftw_alloc_real(2*alloc_forc);
   
 #ifdef _MPI
 
+  forc_p = fftw_alloc_real(2*alloc_forc);
   transfo_inverse_forc = fftw_mpi_plan_dft_c2r_2d(N_F, N_F, forc_f, forc_p, MPI_COMM_WORLD,
                                             FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
 #else
 
-  transfo_inverse_forc = fftw_plan_dft_c2r_2d(N_f, N_f, (fftw_complex*) forc_f, forc_f, FFTW_EXHAUSTIVE);
+  alloc_forc = N_F*N_F;
+  forc_p = fftw_alloc_real(alloc_forc);
+  transfo_inverse_forc = fftw_plan_dft_c2r_2d(N_F, N_F, forc_f, forc_p, FFTW_EXHAUSTIVE);
 
 #endif
   
@@ -119,7 +118,7 @@ void  init_stoch_forc(){
   N_ind = 4*pi*k_f/dk;
   ind_i = calloc(N_ind, sizeof( int ) );
   ind_j = calloc(N_ind, sizeof( int ) );
-
+  
   // get the indices which are to be forced
   for (int j = 0; j < N_F; j ++){
     for (int i = 0; i < NK_f; i ++){
@@ -141,20 +140,21 @@ void  init_stoch_forc(){
     }
   }
 
-
   // upper layer only
-  int k = 0;
+  int k_ind = 0;
 
   for(int j = 0; j<Nyp2; j++){
     for(int i = 0; i <Nxp2; i++){
-      forc[idx(i,j,k)] = 0.;
+      forc[idx(i,j,k_ind)] = 0.;
     }
   }
   
-  for(int i = 0; i < (2*alloc_forc); i++){
-    forc_p[i] = 0.;
+  for(int i = 0; i < N_F; i++){
+    for(int j = 0; j < N_f; j++){
+      forc_p[idx_fft_f(i,j)] = 0.;
+    }
   }
-
+  
   for(int i = 0; i < (alloc_forc); i++){
     forc_f[i][0] = 0.;
     forc_f[i][1] = 0.;
@@ -162,6 +162,14 @@ void  init_stoch_forc(){
 }
 
 void calc_forc() {
+
+  // upper layer only
+  int k_ind = 0;
+  
+  for(int i = 0; i < (alloc_forc); i++){
+    forc_f[i][0] = 0.;
+    forc_f[i][1] = 0.;
+  }
   
   // initiate forcing in spectral space
 
@@ -176,7 +184,7 @@ void calc_forc() {
     forc_f[idx_fft2_f(i,j)][0] = envelope*magnitude*cos(phase);
     forc_f[idx_fft2_f(i,j)][1] = envelope*magnitude*sin(phase);
   }
-
+  
   // execute FFT
   fftw_execute(transfo_inverse_forc);
   
@@ -194,6 +202,7 @@ void calc_forc() {
 void clean_stoch_forcing(){
   free(forc);
   fftw_free(forc_f);
+  fftw_free(forc_p);
   fftw_destroy_plan(transfo_inverse_forc);
 }
 
