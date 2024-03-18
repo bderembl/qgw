@@ -1,0 +1,21 @@
+#!sh
+# input parameter files
+# run with topography
+
+NX = 256
+NY = 256
+Lx = 21.5443
+
+tau0 = 1
+nu = 1e-3
+beta = 1
+dh   = [1.0]
+h_topo = 1.0
+w_topo = 1.
+f0 = 10.
+
+bc_fac = 1
+
+tend  = 100
+dt_out = 1
+DT_max = 1e-2;
