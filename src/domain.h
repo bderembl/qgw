@@ -205,7 +205,10 @@ void  init_vars(){
                                  shelf(Ly-Y[j],w_topo));
     }
   }
-  
+ 
+  // check sign of nu_hyper
+  nu_hyper = pow(-1, n_hyper/2 - 1)*fabs(nu_hyper);
+ 
 }
 
 /**

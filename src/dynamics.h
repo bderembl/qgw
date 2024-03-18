@@ -55,7 +55,7 @@ void  rhs(double *q, double * f1){
         f1[idx(i,j,k)] = -jacobian(psi, q)      \
           - beta_effect(psi)                    \
           + nu*laplacian(q)                     \
-          + pow(-1, n_hyper/2 - 1)*nu_hyper*lap_n_diff[idx(i,j,k)];
+          + nu_hyper*lap_n_diff[idx(i,j,k)];
       }
     }
   }
