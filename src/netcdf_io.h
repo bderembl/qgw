@@ -28,8 +28,24 @@ int nc_varid[1000];
 char * nc_varname[1000];
 int nc_rec = -1;
 
+/* output indices for periodic/bounded simulations */
+int NX_Out;
+int NY_Out;
+
+// flag to remove boundary points in periodic domains
+int ibc = 0;
+
 void create_nc(char* file_out)
 {
+
+  // periodic: remove one point in all directions in output
+   if (bc_fac == -1) {
+     ibc = 1;
+   }
+
+   NX_Out = NXp2 - 2*ibc;
+   NY_Out = NYp2 - 2*ibc;
+
 
    sprintf (file_nc,"%s", file_out);
    if (pid() == 0) { // master
@@ -52,9 +68,9 @@ void create_nc(char* file_out)
    if ((nc_err = nc_def_dim(ncid, LVL_NAME, nl, &lvl_dimid)))
       ERR(nc_err);
 #endif
-   if ((nc_err = nc_def_dim(ncid, Y_NAME, NYp1, &y_dimid)))
+   if ((nc_err = nc_def_dim(ncid, Y_NAME, NY_Out, &y_dimid)))
       ERR(nc_err);
-   if ((nc_err = nc_def_dim(ncid, X_NAME, NXp1, &x_dimid)))
+   if ((nc_err = nc_def_dim(ncid, X_NAME, NX_Out, &x_dimid)))
       ERR(nc_err);
 
    /* Define the coordinate variables. We will only define coordinate
@@ -116,11 +132,11 @@ void create_nc(char* file_out)
       ERR(nc_err);
 
    /*  write coordinates*/
-   float yc[NY+1], xc[NX+1];
-   for (int i = 0; i < NX+1; i++){
+   float yc[NY_Out], xc[NX_Out];
+   for (int i = 0; i < NX_Out; i++){
       xc[i] = i*Delta;
    }
-   for (int i = 0; i < NY+1; i++){
+   for (int i = 0; i < NY_Out; i++){
       yc[i] = i*Delta;
    }
 
@@ -175,9 +191,8 @@ void write_nc() {
 
 
 
-  float * field = (float *)malloc(NXp1*NYp1*nl*sizeof(float));
+  float * field = (float *)malloc(NX_Out*NY_Out*nl*sizeof(float));
 
-//  float ** field = matrix_new (N_out, N_out, sizeof(float));
   
   /* The start and count arrays will tell the netCDF library where to
      write our data. */
@@ -201,21 +216,20 @@ void write_nc() {
   count[0] = 1;
 #if LAYERS
   count[1] = nl;
-  count[2] = NYp1;
-  count[3] = NXp1;
+  count[2] = NY_Out;
+  count[3] = NX_Out;
 #else
-  count[1] = NYp1;
-  count[2] = NXp1;
+  count[1] = NY_Out;
+  count[2] = NX_Out;
 #endif  
 
   for (int iv = 0; iv < list_nc[0].len; iv++){
 
-      // TODO: FOR MPI
       for (int k = 0; k < nl; k++) {
-        for (int j = 0; j < NYp1; j++) {
-          for (int i = 0; i < NXp1; i++) {
-            field[NYp1*NXp1*k + NXp1*j + i] = nodata; // for MPI
-  //          field[Nyp1*Nxp1*k + Nxp1*j + i] = 0.;
+        for (int j = 0; j < NY_Out; j++) {
+          for (int i = 0; i < NX_Out; i++) {
+            field[NY_Out*NX_Out*k + NX_Out*j + i] = nodata; // for MPI
+  //          field[Nyp2*Nxp2*k + Nxp2*j + i] = 0.;
           }
         }
       }
@@ -227,9 +241,9 @@ void write_nc() {
 #endif
 
       for (int k = 0; k < nl; k++) {
-        for (int j = 0; j < Nyp1; j++) {
-          for (int i = 0; i < Nxp1; i++) {
-            field[NYp1*NXp1*k + NXp1*(j + J0) + i] = data_loc[idx(i,j,k)];
+        for (int j = ibc; j < Nyp2 - ibc; j++) {
+          for (int i = ibc; i < Nxp2 - ibc; i++) {
+            field[NY_Out*NX_Out*k + NX_Out*(j + J0) + (i + I0)] = data_loc[idx(i,j,k)];
           }
         }
       }
@@ -237,7 +251,7 @@ void write_nc() {
     if (pid() == 0) { // master
 
 #if _MPI
-      MPI_Reduce (MPI_IN_PLACE, &field[0], NXp1*NYp1*nl, MPI_FLOAT, MPI_MIN, 0,MPI_COMM_WORLD);
+      MPI_Reduce (MPI_IN_PLACE, &field[0], NX_Out*NY_Out*nl, MPI_FLOAT, MPI_MIN, 0,MPI_COMM_WORLD);
 #endif
 
       if ((nc_err = nc_put_vara_float(ncid, nc_varid[iv], start, count,
@@ -246,7 +260,7 @@ void write_nc() {
   } // master
 #if _MPI
   else // slave
-  MPI_Reduce (&field[0], NULL, NXp1*NYp1*nl, MPI_FLOAT, MPI_MIN, 0,MPI_COMM_WORLD);
+  MPI_Reduce (&field[0], NULL, NX_Out*NY_Out*nl, MPI_FLOAT, MPI_MIN, 0,MPI_COMM_WORLD);
 #endif
   }
   free(field);
@@ -267,7 +281,7 @@ void write_nc() {
    TODO: extend this routine to read anything
  */
 
-void read_nc(char* file_in){
+void read_nc(List *list_in, char* file_in, int rec_in){
 
   int ncfile, ndims, nvars, ngatts, unlimited;
   int var_ndims, var_natts;
@@ -275,13 +289,25 @@ void read_nc(char* file_in){
   char varname[NC_MAX_NAME+1];
   int *dimids = NULL;
 
-  float * field = (float *)malloc((NX+1)*(NY+1)*nl*sizeof(float));
+
+  // periodic: remove one point in all directions in output
+   if (bc_fac == -1) {
+     ibc = 1;
+   }
+
+   NX_Out = NXp2 - 2*ibc;
+   NY_Out = NYp2 - 2*ibc;
+
+  float * field = (float *)malloc((NX_Out)*(NY_Out)*nl*sizeof(float));
 
   if ((nc_err = nc_open(file_in, NC_NOWRITE, &ncfile)))
     ERR(nc_err);
 
   if ((nc_err = nc_inq(ncfile, &ndims, &nvars, &ngatts, &unlimited)))
     ERR(nc_err);
+
+  for (int iv_list = 0; iv_list < list_in[0].len; iv_list++){
+
 
   for(int iv=0; iv<nvars; iv++) {
 
@@ -291,34 +317,38 @@ void read_nc(char* file_in){
       ERR(nc_err);
 
 
-    if (strcmp(varname,"q") == 0) {
-      fprintf(stdout,"Reading variable  %s!\n", "q");
+    if (strcmp(varname,list_in[iv_list].name) == 0) {
+      fprintf(stdout,"Reading variable  %s!\n", varname);
+
+      double * data_loc = (double*)list_in[iv_list].data;
 
       size_t start[4], count[4];
-      start[0] = 0; //time
+      start[0] = rec_in; //time
       start[1] = 0;
       start[2] = 0;
       start[3] = 0;
 
       count[0] = 1;
       count[1] = nl;
-      count[2] = NX+1;
-      count[3] = NY+1;
+      count[2] = NX_Out;
+      count[3] = NY_Out;
       if ((nc_err = nc_get_vara_float(ncfile, iv, start, count,
                                       &field[0])))
         ERR(nc_err);
 
 
       for (int k = 0; k < nl; k++) {
-        for (int j = 0; j < Nyp1; j++) {
-          for (int i = 0; i < Nxp1; i++) {
-            q[idx(i,j,k)] = field[NYp1*NXp1*k + NXp1*(j + J0) + i];
+        for (int j = ibc; j < Nyp2 - ibc; j++) {
+          for (int i = ibc; i < Nxp2 - ibc; i++) {
+            data_loc[idx(i,j,k)] = field[NY_Out*NX_Out*k + NX_Out*(j + J0) + i + I0];
           }
         }
-      } // end k loop
-
+      }
     }
+
   } // end nvar loop
+
+  } // end list loop
 
   free(field);
 

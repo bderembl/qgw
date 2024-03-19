@@ -1,0 +1,33 @@
+#!sh
+# input parameter file
+# double gyre 
+NX  = 256
+NY  = 256
+nl = 1
+Lx = 1
+f0 = 2
+beta = 5
+tau0 = 0
+forc_mode = 4.0
+
+# stochastic forcing
+k_f = 32
+sigma_f = 1e-3
+
+# bc_fac = 0: free slip, 1: no slip, [0..1]: partial slip
+bc_fac = -1
+# dh must be an array
+dh = [1]
+N2 = [0]
+
+# for 1.5 layer simulations (or in general the deformation radius of barotropic mode)
+
+
+nu = 0
+nu_hyper = 3.56e-16
+n_hyper = 6
+hEkb = 5e-4
+
+# timestepping
+tend  =  1576800000000
+dt_out = 1

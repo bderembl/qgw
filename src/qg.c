@@ -7,7 +7,6 @@
     mpicc -D_MPI -O3 qg.c -o qg.e -lfftw3_mpi -lfftw3 -lm -llapacke -lnetcdf
 
    Compilation flags
-     -D_STOCHASTIC : add a stochastic forcing
      -D_MPI : needed for mpi compilation
     
    Run with
@@ -47,7 +46,8 @@ double pi = 3.141592653589793;
 double *psi;
 double *q;
 double *topo;
-double *omega;
+double *lap_n_diff;
+double *diff;
 
 // variable for printing out intermediate initialisation info
 int print = 1;
@@ -68,7 +68,8 @@ double DT_max = 0;
 int it = 0;
 double beta = 0.;
 double nu = 0.;
-double nu_kin = 0.;
+int n_hyper = 0;
+double nu_hyper = 0.;
 double hEkb = 0.;
 double tau0 = 0.;
 double forc_mode = 1.0;
@@ -87,12 +88,15 @@ double w_topo = 1.;
 // declaration of list type needs to occur after extra.h import
 List *params; 
 
+// for restart
+List *list_in;
+
 #include "domain.h"
-#include "elliptic.h"
-#include "forcing.h"
-#include "dynamics.h"
-#include "timestep.h"
 #include "netcdf_io.h"
+#include "elliptic.h"
+#include "dynamics.h"
+#include "forcing.h"
+#include "timestep.h"
 
 int main(int argc,char* argv[])
 {
@@ -107,6 +111,7 @@ int main(int argc,char* argv[])
   params = list_append(params, &NX, "NX", "int");
   params = list_append(params, &NY, "NY", "int");
   params = list_append(params, &nl, "nl", "int");
+  params = list_append(params, &n_hyper, "n_hyper", "int");
   params = list_append(params, &Lx, "Lx", "double");
   params = list_append(params, &dh, "dh", "array");
   params = list_append(params, &tau0, "tau0", "double");
@@ -114,7 +119,7 @@ int main(int argc,char* argv[])
   params = list_append(params, &f0, "f0", "double");
   params = list_append(params, &beta, "beta", "double");
   params = list_append(params, &nu, "nu", "double");
-  params = list_append(params, &nu_kin, "nu_kin", "double");
+  params = list_append(params, &nu_hyper, "nu_hyper", "double");
   params = list_append(params, &hEkb, "hEkb", "double");
   params = list_append(params, &N2, "N2", "array");
   params = list_append(params, &Ld, "Ld", "double");
@@ -123,6 +128,8 @@ int main(int argc,char* argv[])
   params = list_append(params, &bc_fac, "bc_fac", "double");
   params = list_append(params, &tend, "tend", "double");
   params = list_append(params, &dt_out, "dt_out", "double");
+  params = list_append(params, &dt_forc, "dt_forc", "double");
+  params = list_append(params, &dt_forc_period, "dt_forc_period", "double");
   params = list_append(params, &sigma_f, "sigma_f", "double");
   params = list_append(params, &k_f, "k_f", "double");
   params = list_append(params, &cfl, "cfl", "double");
@@ -145,16 +152,16 @@ int main(int argc,char* argv[])
   init_elliptic();
   init_vars();
   init_timestep();
-
-#ifdef _STOCHASTIC
   init_stoch_forc();
-  fprintf(stdout,"Stochastic forcing. \n");
-#endif
+  init_4d_forcing();
 
   // read q0 (restart)
-  read_nc("restart.nc");
+  list_in = list_append(list_in, q,"q", "double");
+  read_nc(list_in, "restart.nc", 0);
+  list_free(list_in);
+
   // First inversion
-  invert_pv(q, psi, omega);
+  invert_pv(q, psi);
 
   // Initialize output
   char file_tmp[90];
@@ -175,27 +182,27 @@ int main(int argc,char* argv[])
     if (fabs (t - t_out) < TEPS*dt){
       
       t_out += dt_out;
-      invert_pv(q, psi, omega);
+      invert_pv(q, psi);
 
       // write output
       fprintf(stdout,"Write output, t = %e \n",t);
+
       write_nc();
 
     }
 
-
     timestep(q);
     it ++;
+
   }
 
- 
   /**
      Cleanup
   */
 
-#ifdef _STOCHASTIC
+
   clean_stoch_forcing();
-#endif
+  clean_4d_forcing();
 
   clean_fft();
   clean_timestep();

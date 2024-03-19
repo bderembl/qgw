@@ -88,9 +88,19 @@ $$\sigma^2 \int_0^{K_{max}}\frac{\vert f(K)\vert^2}{4\pi K \delta k^2} dK = \sig
 
 From this condition we then get the shape of $f$, namely
 
-$$\sqrt{\sqrt{4 \pi K^2 \delta k} e^{- \frac{\vert K - k_f\vert^2 }{2 \delta k^2}}}$$
+$$\sqrt{\sqrt{8 \pi K^2 \delta k} e^{- \frac{\vert K - k_f\vert^2 }{2 \delta k^2}}}$$
 
 This shape corresponds to a forcing which is localised at $K = k_f$ with a spectral width of $\delta k = 1/L$. 
+
+** Lennard's new version of the stochastic forcing
+
+When run on many cores at the same time, the code would produce a stochastic forcing field that is wrapped by an envelope wave in the x-direction. I did not manage to resolve this bug, and instead implemented a workaround with a "thinner" region in fourier space across which the forcing is applied.
+
+We select only the pixels which are closest to k_f, the forcing frequency, and either force with a given amplitude, or not at all. In other words, f(K) becomes a step/delta function. To renormalise, we have to keep track of how many pixels we apply the forcing to, but else the renormalisation factor can be rederived rather easily using the relations from the previous section. We end up with
+
+$$f = \sqrt(8/N_p)\pi k_f$$
+
+Here $N_P$ is the total number of fourier grid points across which the forcing is applied.
 
 ** Random number generator
 
@@ -240,3 +250,25 @@ print(f'Theoretical variance: {sigma**2/2/theta}')
 
 
 The Euler-Maruyama Scheme allows us to effectively control the energy injection (shown in the script test_energy_injection.py in the /test directory.)
+
+* Deterministic forcing
+
+There is the possibility to force the model with a stationary, or time varying
+forcing with user input fields.
+
+To activate this function you must define two parameters in params.in
+
+- ~dt_forc~: the time interval between two forcing snapshots
+- ~dt_forc_period~: the time period of the forcing
+
+and obviously you must ensure that ~i*dt_forc=dt_forc_period~ with ~i~ an
+integer. If you want a stationary forcing, simply put ~dt_forc=dt_forc_period~.
+
+The forcing fields are read in a file named ~input_vars.nc~ which must be placed
+in the same folder as the executable. This netCDF file must contain a variable
+named ~q_forcing_3d~ with ~i~ records and the same spatial dimensions as a ~q~
+fields that you would obtain in a regular output file.
+
+At each time step the actual forcing is linearly interpolated between two
+neighboring forcing snapshots. At $t=0$, the forcing is exactly the first record
+in the netCDF file.

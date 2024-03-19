@@ -20,23 +20,28 @@ void check_timestep(){
       decreases it if necessary.
   */
   
-  double nu_eff = max(nu,nu_kin);
+  double inv_t_nu_hyper = nu_hyper*20./pow(Lx/Nx, n_hyper);
+  double inv_t_nu = nu*20./pow(Lx/Nx, 2);
+  double inv_t_beta = 2.*beta*Lx;
 
-  if (beta != 0 && nu_eff != 0) {
-    DT_max = min(1/(2.*beta*Lx),sq(Lx/Nx)/nu_eff/20.);
-  } else if (beta != 0 && nu_eff == 0) {
-    DT_max = 1/(2.*beta*Lx);
-  } else if (beta == 0 && nu_eff != 0) {
-    DT_max = sq(Lx/Nx)/nu_eff/20.;
-  }
+  DT_max = pow(max(max(inv_t_nu_hyper, inv_t_nu), inv_t_beta), -1.);
 
   /**
      Adjusts dt with forcing
      U ~ forcing*dt*L
      dt = sqrt(cfl*Delta/forcing*L)
+     or stochastic forcing
+     U ~ sqrt(sigma*dt)
+     dt = (cfl^2*Delta^2/sigma)^(1/3)
    */
 
-  dt = 1e-3*sqrt(cfl*Delta/(tau0/dh[0]*forc_mode*pi/Ly*Ly));
+  if (tau0 != 0 && sigma_f != 0) {
+    dt = 1e-3*min(sqrt(cfl*Delta/(tau0/dh[0]*forc_mode*pi/Ly*Ly)) , pow(sq(Delta*cfl)/sigma_f, 1./3.));
+  } else if (tau0 != 0 && sigma_f == 0) {
+    dt = 1e-3*sqrt(cfl*Delta/(tau0/dh[0]*forc_mode*pi/Ly*Ly));
+  } else if (tau0 == 0 && sigma_f != 0) {
+    dt = 1e-3*pow(sq(Delta*cfl)/sigma_f, 1./3.);
+  }
 
   if (DT_max != 0 && dt > DT_max) {
     dt = DT_max; 
@@ -50,9 +55,9 @@ void check_timestep(){
 
 void init_timestep(){
 
-  f0_ab = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
-  f1_ab = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
-  f2_ab = calloc( Nxp1*Nyp1*nl, sizeof( double ) );
+  f0_ab = calloc( Nxp2*Nyp2*nl, sizeof( double ) );
+  f1_ab = calloc( Nxp2*Nyp2*nl, sizeof( double ) );
+  f2_ab = calloc( Nxp2*Nyp2*nl, sizeof( double ) );
 	
   check_timestep();
 
@@ -67,8 +72,8 @@ double adjust_timestep(double *psi) {
   double dt_max = HUGE;
 
   for(int k = 0; k<nl; k++){
-    for(int j = 1; j<Ny; j++){
-      for(int i = 1;i <Nx; i++){
+    for(int j = 1; j<Nyp1; j++){
+      for(int i = 1; i<Nxp1; i++){
         double u = -(psi[idx(i+1,j,k)] - psi[idx(i,j,k)])/Delta;
         double v =  (psi[idx(i,j+1,k)] - psi[idx(i,j,k)])/Delta;
         u = max(fabs(u), fabs(v));
@@ -122,29 +127,40 @@ void timestep(double * q){
   dt0 = dt;
   dt = adjust_timestep(psi);
 
-  
   // AB3 with variable time step coefficients
   double c0 = dt*(2*sq(dt) + 3*dt*(2*dt0 + dt1) + 6*dt0*(dt0 + dt1))/(6*dt0*(dt0 + dt1));
   double c1 = sq(dt)*(-dt/3 - dt0/2 - dt1/2)/(dt0*dt1);
   double c2 = sq(dt)*(dt/3 + dt0/2)/(dt1*(dt0 + dt1));
 
   for(int k = 0; k<nl; k++){
-    for (int j = 1; j < Ny; j++){
-      for (int i = 1; i < Nx; i++){
+    for (int j = 1; j < Nyp1; j++){
+      for (int i = 1; i < Nxp1; i++){
         q[idx(i,j,k)] = q[idx(i,j,k)]  + c0*f0_ab[idx(i,j,k)] + c1*f1_ab[idx(i,j,k)] + c2*f2_ab[idx(i,j,k)];
       }
     }
   }
 	
-  #ifdef _STOCHASTIC
+  if(k_f){
     calc_forc();
-    for (int j = 1; j < Ny; j++){
-      for (int i = 1; i < Nx; i++){
-        q[idx(i,j)] += forc[idx(i,j)]*sqrt(dt);
+    for (int j = 1; j < Nyp1; j++){
+      for (int i = 1; i < Nxp1; i++){
+        q[idx(i,j,0)] += forc[idx(i,j,0)]*sqrt(dt);
       }
+    }
   }
-  #endif
 
+  if (dt_forc_period){
+
+    calc_4d_forcing();
+
+    for(int k = 0; k<nl; k++){
+      for (int j = 1; j < Nyp1; j++){
+        for (int i = 1; i < Nxp1; i++){
+          q[idx(i,j,k)] += q_forc_3d[idx(i,j,k)]*dt;
+        }
+      }
+    }
+  }
 
   t = t + dt;
 

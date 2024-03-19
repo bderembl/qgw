@@ -8,7 +8,9 @@ int n_ranks;
 int rank_crit; // last rank to obtain a meaningful data chunk
 
 int J0; 
-
+int I0;
+int K0;
+int Nk;
 
 #define pid() rank
 

@@ -1,0 +1,27 @@
+
+Description of several configurations
+
+* params_01
+
+simple barotropic run
+
+* params_02
+
+barotropic with stochastic energy injection
+
+* params_03
+
+double gyre 3 layer
+
+* params_04
+
+barotropic topography
+
+* params_05
+
+doubly periodic stochastic forcing
+
+* params_06
+
+hyperviscosity (barotropic, stochastic energy injection)
+
