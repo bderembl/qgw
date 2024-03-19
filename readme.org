@@ -1,23 +1,54 @@
-QG code that rely on FFTW for the elliptic solver.
+* Overview
 
-   Compile with 
+Finite differences QG model that rely on FFTW for the elliptic solver.
+
+Dependencies:
+- [[http://fftw.org/][FFTW3]]
+- [[https://www.netlib.org/lapack/lapacke.html][Lapacke]] (C interface to Lapack)
+- [[https://www.unidata.ucar.edu/software/netcdf/][NetCDF]]
+
+For single core execution, compile with 
 #+BEGIN_SRC sh
-gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -lnetcdf
+  gcc -O3 -Wall qg.c -o qg.e -lm -lfftw3 -llapacke -lnetcdf
+#+END_SRC
+For parallel execution, compile with
+#+BEGIN_SRC sh
+  mpicc -D_MPI -O3 qg.c -o qg.e -lfftw3_mpi -lfftw3 -lm -llapacke -lnetcdf
 #+END_SRC
 
+There are several test cases in ~test/~
+
+you can run the model with
+#+BEGIN_SRC sh
+  ./qg.e params.in
+#+END_SRC
+or 
+#+BEGIN_SRC sh
+  mpirun -np 4 ./qg.e params.in
+#+END_SRC
+The number of processor is arbitrary.
 
 * QG equations
 
-
 $$\frac{\partial q}{\partial t} = -J(\psi,q) - \beta v + \nu \Delta q$$
+
+For a single layer configuration, we have
+
+$$q = \Delta \psi$$
+
+and for multi layer
+
+$$q = \Delta \psi + \frac{\partial}{\partial z} \frac{f_0^2}{N^2}\frac{\partial}{\partial z}$$
+
+with $f_0$ the Coriolis parameter and $N^2$ the Brunt Vaisala frequency.
 
 * Discretization
 
-Variables are discretized at cell corner.
+The model is written with finite differences. For closed domains, variables are
+discretized at cell corner. For periodic domain, variables are discretized at
+cell center.
 
-to access the value of a field at index i,j, one uses 
+to access the value of a field at index i,j,k one uses 
 
-p[idx(i,j)]
-
-This may simplify or complexify the move to MPI
+~psi[idx(i,j,k)]~
 
