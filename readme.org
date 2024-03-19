@@ -38,7 +38,7 @@ $$q = \Delta \psi$$
 
 and for multi layer
 
-$$q = \Delta \psi + \frac{\partial}{\partial z} \frac{f_0^2}{N^2}\frac{\partial}{\partial z}$$
+$$q = \Delta \psi + \frac{\partial}{\partial z} \frac{f_0^2}{N^2}\frac{\partial}{\partial z} \psi$$
 
 with $f_0$ the Coriolis parameter and $N^2$ the Brunt Vaisala frequency.
 
