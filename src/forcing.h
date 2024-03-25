@@ -7,7 +7,7 @@
 
 // forcing parameters
 double sigma_f = 1.;
-double k_f = 0.1;
+double k_f = 0.;
 
 // global constants
 ptrdiff_t alloc_forc; 
