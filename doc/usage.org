@@ -1,13 +1,8 @@
-#+OPTIONS: ^:nil
+#+OPTIONS: ^:{}
 
 * QGW in practice
 ** Compilation
-
-Required packages
-
-for the MPI model: 
-- FFTW
-- NetCDF
+See [[../readme.org][readme.org]]
 
 ** Parameters
 
@@ -25,11 +20,11 @@ $13^f$, where $e+f$ is either 0 or 1, and the other exponents are arbitrary.
 - nl: number of layers
 - Lx: Length of domain in X direction
 - dh: Layer thicknesses e.g. [200, 500, 2000]
-- tau0: wind stress maximum [tau0] = $L^2 s^{-2}$
+- tau0: wind stress maximum [tau0] = m^{2} s^{-2}
 
   default forcing is 
 
-$$ -\frac{tau0}{dh[0]} forc_mode \frac{\pi}{Ly} sin\left(forc_mode \pi \frac{y}{Ly}\right)$$
+$$ \frac{dq[0]}{dt} = ... -\frac{tau0}{dh[0]} forc\_mode \frac{\pi}{Ly} sin\left(forc\_mode \pi \frac{y}{Ly}\right)$$
 
 - forc_mode
 
@@ -38,7 +33,7 @@ $$ -\frac{tau0}{dh[0]} forc_mode \frac{\pi}{Ly} sin\left(forc_mode \pi \frac{y}{
 - f0: Coriolis parameter
 - beta: beta parameter
 
-  On the beta plane, the Coriolis parameter is $f =f_0 + \beta y$
+  On the beta plane, the Coriolis parameter is f =f_{0} + \beta y
 
 - nu: harmonic viscosity to diffuse q
 
@@ -46,11 +41,12 @@ $$ -\frac{tau0}{dh[0]} forc_mode \frac{\pi}{Ly} sin\left(forc_mode \pi \frac{y}{
 
 - n_hyper: index of hyper-viscosity (in front of vorticity in the PV equation: 0 corresponds to linear drag, 2 corresponds to harmonic viscosity, ...)
 
-- hEkb: thickness of the bottom Ekman layer in m.
+- hEkb: thickness of the bottom Ekman layer in m. The linear drag is formulated as
+$$ \frac{dq[nl-1]}{dt}= ... - hEkb*f0/(2*dh[nl-1])*laplacian(psi)$$
 
-- N2: Brunt Vaisalla frequency at layer interface [N^2] = s$^{-2}$. e.g. for a 3 layer configuration N2 = [4e-05, 6e-06]
+- N2: Brunt Vaisalla frequency at layer interface [N2] = s^{-2}. e.g. for a 3 layer configuration N2 = [4e-05, 6e-06]
 
-- Ld: Deformation radius (only for 1.5 layer configuration)
+- Ld: Deformation radius in m (only for 1.5 layer configuration)
 
 - bc_fac: Slip boundary condition 
   - bc_fac is a parameter that controls the type of boundary conditions:
