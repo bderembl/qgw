@@ -243,7 +243,7 @@ void compute_eigmode () {
 
   // set BT mode to zero (unless it's a 1.5 layer simulation)
   iRd2[0] = 0.;
-  if (nl == 1 && Ld != 0)
+  if ((nl == 1) && (Ld != 0))
     iRd2[0] = 1/sq(Ld);
 
   
