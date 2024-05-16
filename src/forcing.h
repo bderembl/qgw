@@ -115,8 +115,7 @@ void  init_stoch_forc(){
                                               FFTW_EXHAUSTIVE|FFTW_MPI_TRANSPOSED_IN);
   #else
 
-    alloc_forc = N_F*N_F;
-    forc_p = fftw_alloc_real(alloc_forc);
+    forc_p = fftw_alloc_real(N_F*N_F);
     transfo_inverse_forc = fftw_plan_dft_c2r_2d(N_F, N_F, forc_f, forc_p, FFTW_EXHAUSTIVE);
 
   #endif
@@ -212,8 +211,8 @@ void clean_stoch_forcing(){
   if(k_f){
     free(ind_i);
     free(ind_j);
-    free(forc);
     fftw_free(forc_f);
+    free(forc);
     fftw_free(forc_p);
     fftw_destroy_plan(transfo_inverse_forc);
   }
