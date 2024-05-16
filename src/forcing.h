@@ -5,6 +5,10 @@
 	 
 */
 
+#define REAL 0
+#define IMAG 1
+
+
 // forcing parameters
 double sigma_f = 1.;
 double k_f = 0.;
@@ -63,7 +67,7 @@ fftw_plan transfo_inverse_forc;
 void  init_stoch_forc(){
 
   if(k_f){
-    fprintf(stdout,"Stochastic forcing. \n");
+    fprintf(stdout,"Init stochastic forcing. \n");
     
     // k_f is thought to be 1/lambda in the following.
     k_f /= 2*pi;
@@ -160,43 +164,45 @@ void  init_stoch_forc(){
       }
     }
     
-    for(int i = 0; i < (alloc_forc); i++){
-      forc_f[i][0] = 0.;
-      forc_f[i][1] = 0.;
+    for(int i = 0; i < alloc_forc; i++){
+      forc_f[i][REAL] = 0.;
+      forc_f[i][IMAG] = 0.;
     }
   }
 }
 
 void calc_forc() {
   
-  for(int i = 0; i < (alloc_forc); i++){
-    forc_f[i][0] = 0.;
-    forc_f[i][1] = 0.;
-  }
+  if (N_P > 1) {// force only if there are non zero forcing modes
+
+    for(int i = 0; i < (alloc_forc); i++){
+      forc_f[i][REAL] = 0.;
+      forc_f[i][IMAG] = 0.;
+    }
   
-  // initiate forcing in spectral space
+    // initiate forcing in spectral space
+    for (int ii = 0; ii < N_p; ii++){
+      int i = ind_i[ii];
+      int j = ind_j[ii];
 
-  for (int ii = 0; ii < N_p; ii++){
-    int i = ind_i[ii];
-    int j = ind_j[ii];
+      double envelope = sqrt((double) 8/((N_P-1)*2))*pi*k_f;
+      double magnitude = sigma_f*normal_noise();
+      double phase = noise()*2*pi;
 
-    double envelope = sqrt((double) 8/((N_P-1)*2))*pi*k_f;
-    double magnitude = sigma_f*normal_noise();
-    double phase = noise()*2*pi;
-
-    forc_f[idx_fft2_f(i,j)][0] = envelope*magnitude*cos(phase);
-    forc_f[idx_fft2_f(i,j)][1] = envelope*magnitude*sin(phase);
-  }
+      forc_f[idx_fft2_f(i,j)][REAL] = envelope*magnitude*cos(phase);
+      forc_f[idx_fft2_f(i,j)][IMAG] = envelope*magnitude*sin(phase);
+    }
   
-  // execute FFT
-  fftw_execute(transfo_inverse_forc);
+    // execute FFT
+    fftw_execute(transfo_inverse_forc);
   
-  // upper layer only
-  int k = 0;
+    // upper layer only
+    int k = 0;
 
-  for(int j = 0; j<N_f; j++){
-    for(int i = 0; i<N_F; i++){
-      forc[idx(i+1,j+1,k)] = forc_p[idx_fft_f(i,j)];
+    for(int j = 0; j<N_f; j++){
+      for(int i = 0; i<N_F; i++){
+        forc[idx(i+1,j+1,k)] = forc_p[idx_fft_f(i,j)];
+      }
     }
   }
   
@@ -204,6 +210,8 @@ void calc_forc() {
 
 void clean_stoch_forcing(){
   if(k_f){
+    free(ind_i);
+    free(ind_j);
     free(forc);
     fftw_free(forc_f);
     fftw_free(forc_p);
@@ -219,6 +227,7 @@ void clean_stoch_forcing(){
 void  init_4d_forcing(){
 
   if (dt_forc_period){
+    fprintf(stdout,"Init 4d forcing. \n");
     q_forc_3d    = calloc(Nxp2*Nyp2*nl, sizeof( double ) );
     q_forc_3d_t1 = calloc(Nxp2*Nyp2*nl, sizeof( double ) );
     q_forc_3d_t2 = calloc(Nxp2*Nyp2*nl, sizeof( double ) );
