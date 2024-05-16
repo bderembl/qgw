@@ -4,19 +4,19 @@
 
 NX = 128
 NY = 128
-Lx = 1      
+Lx = 6.235      
 
 sigma_f = 1
 k_f = 10
 
 tau0 = 0 
-nu = 0   
+nu = 0.005   
 beta = 0
 
 bc_fac = 0
 
 dt = 0.01
-tend  = 1
-dt_out = 0.01
+tend  = 100
+dt_out = 0.1
 dt_print = 0.001
 
