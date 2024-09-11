@@ -25,3 +25,7 @@ doubly periodic stochastic forcing
 
 hyperviscosity (barotropic, stochastic energy injection)
 
+* params_07
+
+Zapiola configuration (similar to Dewar 1998 but in a double gyre)
+

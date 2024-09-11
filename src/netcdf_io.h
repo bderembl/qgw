@@ -7,7 +7,7 @@
 
 #define Y_NAME "y"
 #define X_NAME "x"
-#define REC_NAME "time"
+#define REC_NAME "t"
 #define LVL_NAME "level"
 
 /* Handle errors by printing an error message and exiting with a
@@ -194,11 +194,13 @@ void write_nc() {
   float * field = (float *)malloc(NX_Out*NY_Out*nl*sizeof(float));
 
   
+  //TODO adjust start and count for "2d_field" and "3d_fields"  
+
   /* The start and count arrays will tell the netCDF library where to
      write our data. */
   size_t start[NDIMS], count[NDIMS];
   
-  
+
   /* These settings tell netcdf to write one timestep of data. (The
      setting of start[0] inside the loop below tells netCDF which
      timestep to write.) */
@@ -322,22 +324,44 @@ void read_nc(List *list_in, char* file_in, int rec_in){
 
       double * data_loc = (double*)list_in[iv_list].data;
 
-      size_t start[4], count[4];
-      start[0] = rec_in; //time
-      start[1] = 0;
-      start[2] = 0;
-      start[3] = 0;
+      int nl_tmp = nl;
 
-      count[0] = 1;
-      count[1] = nl;
-      count[2] = NX_Out;
-      count[3] = NY_Out;
-      if ((nc_err = nc_get_vara_float(ncfile, iv, start, count,
-                                      &field[0])))
-        ERR(nc_err);
+      if (strcmp(list_in[iv_list].type, "2d_field") == 0) {
+        size_t start[3], count[3];
+        start[0] = rec_in; //time
+        start[1] = 0;
+        start[2] = 0;
+
+        count[0] = 1;
+        count[1] = NX_Out;
+        count[2] = NY_Out;
+        nl_tmp = 1;
+
+        if ((nc_err = nc_get_vara_float(ncfile, iv, start, count,
+                                        &field[0])))
+          ERR(nc_err);
+
+      } else{
+
+        size_t start[4], count[4];
+        start[0] = rec_in; //time
+        start[1] = 0;
+        start[2] = 0;
+        start[3] = 0;
+
+        count[0] = 1;
+        count[1] = nl;
+        count[2] = NX_Out;
+        count[3] = NY_Out;
+
+        if ((nc_err = nc_get_vara_float(ncfile, iv, start, count,
+                                        &field[0])))
+          ERR(nc_err);
+      }
 
 
-      for (int k = 0; k < nl; k++) {
+
+      for (int k = 0; k < nl_tmp; k++) {
         for (int j = ibc; j < Nyp2 - ibc; j++) {
           for (int i = ibc; i < Nxp2 - ibc; i++) {
             data_loc[idx(i,j,k)] = field[NY_Out*NX_Out*k + NX_Out*(j + J0) + i + I0];

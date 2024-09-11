@@ -16,7 +16,9 @@
 
      create a restart file:
      ncks -d time,-1,-1 vars.nc restart.nc
-
+     
+     you may want to add other variables in the restart file
+     ncks -h -A topo.nc restart.nc
 
    TODO
      - Documentation
@@ -156,7 +158,8 @@ int main(int argc,char* argv[])
   init_4d_forcing();
 
   // read q0 (restart)
-  list_in = list_append(list_in, q,"q", "double");
+  list_in = list_append(list_in, q, "q", "3d_field");
+  list_in = list_append(list_in, topo,"topo", "2d_field");
   read_nc(list_in, "restart.nc", 0);
   list_free(list_in);
 
@@ -167,8 +170,8 @@ int main(int argc,char* argv[])
   char file_tmp[90];
   sprintf (file_tmp,"%s%s", dir_out, "vars.nc");
 
-  list_nc = list_append(list_nc, psi,"psi", "double");
-  list_nc = list_append(list_nc, q, "q", "double");
+  list_nc = list_append(list_nc, psi,"psi", "3d_field");
+  list_nc = list_append(list_nc, q, "q", "3d_field");
   create_nc(file_tmp);
 
   /**

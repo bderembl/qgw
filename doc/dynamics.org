@@ -23,3 +23,10 @@ $$topo = h_{topo} (1 - shelf(x_N).shelf(x_S).shelf(x_E).shelf(x_W))$$
 
 The height of the topography can be adjusted with the parameter ~h_topo~ and the
 width of the shelf can be adjsuted with the parameter ~w_topo~.
+
+~h_topo~ is the deviation with respct to the mean depth of the ocen: $h_{topo} >
+0$ corresponds to a shallow area, $h_{topo} < 0$ corresponds to a deep area.
+
+You can add a user defined topography. It must be in the ~restart.nc~ file with
+dimensions (t,y,x) (do not forget the time dimension). You can find an example
+in ~scripts/create_forcing.py~
