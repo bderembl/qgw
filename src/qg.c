@@ -15,7 +15,7 @@
      mpirun -n NPROC qg.e
 
      create a restart file:
-     ncks -d time,-1,-1 vars.nc restart.nc
+     ncks -d t,-1,-1 vars.nc restart.nc
      
      you may want to add other variables in the restart file
      ncks -h -A topo.nc restart.nc

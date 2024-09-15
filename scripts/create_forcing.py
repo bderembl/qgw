@@ -21,7 +21,7 @@ beta = 2e-11
 h_shelf = 1000 # topo anomaly in m
 w_shelf = 100e3  # width of the shelf in m
 # zapiola parameters
-h_zap = 700
+h_zap = 1500
 w_zap = 400e3
 x_zap = 1000e3
 y_zap = 1000e3

@@ -18,9 +18,9 @@ $13^f$, where $e+f$ is either 0 or 1, and the other exponents are arbitrary.
 
 - NY: Number of grid points in X-coordinate
 - nl: number of layers
-- Lx: Length of domain in X direction
-- dh: Layer thicknesses e.g. [200, 500, 2000]
-- tau0: wind stress maximum [tau0] = m^{2} s^{-2}
+- Lx: Length of domain in X direction in [m]
+- dh: Layer thicknesses e.g. [200, 500, 2000] in [m]
+- tau0: wind stress maximum in [m^{2} s^{-2}]
 
   default forcing is 
 
@@ -30,23 +30,23 @@ $$ \frac{dq[0]}{dt} = ... -\frac{tau0}{dh[0]} forc\_mode \frac{\pi}{Ly} sin\left
 
   flag to switch from single gyre to double gyre
 
-- f0: Coriolis parameter
-- beta: beta parameter
+- f0: Coriolis parameter [s^{-1}]
+- beta: beta parameter  [m^{-1} s^{-1}]
 
   On the beta plane, the Coriolis parameter is f =f_{0} + \beta y
 
-- nu: harmonic viscosity to diffuse q
+- nu: harmonic viscosity (to diffuse q) [m^2 s^{-1}]
 
-- nu_hyper: hyper-viscosity 
+- nu_hyper: hyper-viscosity [m^{n_hyper} s^{-1}]
 
-- n_hyper: index of hyper-viscosity (in front of vorticity in the PV equation: 0 corresponds to linear drag, 2 corresponds to harmonic viscosity, ...)
+- n_hyper: index of hyper-viscosity: should be a multiple of 2 (in front of vorticity in the PV equation: 0 corresponds to linear drag, 2 corresponds to harmonic viscosity, ...)
 
-- hEkb: thickness of the bottom Ekman layer in m. The linear drag is formulated as
+- hEkb: thickness of the bottom Ekman layer in [m]. The linear drag is formulated as
 $$ \frac{dq[nl-1]}{dt}= ... - hEkb*f0/(2*dh[nl-1])*laplacian(psi)$$
 
-- N2: Brunt Vaisalla frequency at layer interface [N2] = s^{-2}. e.g. for a 3 layer configuration N2 = [4e-05, 6e-06]
+- N2: Brunt Vaisalla frequency at layer interface in [s^{-2}]. e.g. for a 3 layer configuration N2 = [4e-05, 6e-06]
 
-- Ld: Deformation radius in m (only for 1.5 layer configuration)
+- Ld: Deformation radius in [m] (only for 1.5 layer configuration)
 
 - bc_fac: Slip boundary condition 
   - bc_fac is a parameter that controls the type of boundary conditions:
@@ -55,11 +55,12 @@ $$ \frac{dq[nl-1]}{dt}= ... - hEkb*f0/(2*dh[nl-1])*laplacian(psi)$$
   - bc_fac = 1      -> no slip BC
   - bc_fac = -1     -> periodic BC (experimental)
 
-- tend: duration of the run
+- tend: duration of the run in [s]
 
-- dt_out: time interval for output
+- dt_out: time interval for output in [s]
 
 - cfl: CFL condition 
 
-- sigma_f: stochastic forcing parameter
-- k_f: stochastic forcing parameter
+- sigma_f: stochastic forcing parameter (see [[forcing.org]])
+
+- k_f: stochastic forcing parameter (see [[forcing.org]])

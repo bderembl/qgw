@@ -7,11 +7,11 @@ nl = 3
 Lx = 4000e3
 f0 = 1e-04
 beta = 2e-11
-tau0 = 1.3e-5
+tau0 = 3e-5
 forc_mode = 2.0
 
 # bc_fac = 0: free slip, 1: no slip, [0..1]: partial slip
-bc_fac = 0.2
+bc_fac = 0.
 # dh must be an array
 dh = [300., 700., 4000.]
 N2 = [2.8000000e-05, 2.9787234e-06]
@@ -20,5 +20,5 @@ nu = 50
 hEkb = 1
 
 # timestepping
-tend  = 864000000
-dt_out = 8640000
+tend  = 86400000
+dt_out = 864000
